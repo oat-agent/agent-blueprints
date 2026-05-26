@@ -1,0 +1,121 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: api-builder
+  version: 1.0.0
+  author: oat-backend
+  description: >-
+    REST and GraphQL API development agent specializing in API design,
+    implementation, documentation, and testing. Handles Express, FastAPI,
+    Spring Boot, and modern API frameworks with OpenAPI/GraphQL schema generation.
+  tags: [backend, api, rest, graphql, openapi, express, fastapi, spring]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: express
+        version: ">=4.18.0"
+      - name: fastapi
+        version: ">=0.104.0"
+      - name: spring-boot-cli
+        version: ">=3.0.0"
+      - name: graphql-cli
+        version: ">=5.0.0"
+      - name: swagger-codegen-cli
+        version: ">=3.0.0"
+      - name: apollo-server
+        version: ">=4.0.0"
+      - name: prisma
+        version: ">=5.0.0"
+      - name: typeorm
+        version: ">=0.3.0"
+      - name: sequelize-cli
+        version: ">=6.0.0"
+      - name: jest
+        version: ">=29.0.0"
+      - name: supertest
+        version: ">=6.0.0"
+      - name: newman
+        version: ">=6.0.0"
+    apis:
+      - openapi
+      - postman
+      - insomnia
+      - graphql-playground
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 2Gi
+    cpu: 2
+    timeout: 30m
+    api_limits:
+      tokens_per_minute: 100000
+      requests_per_minute: 100
+
+  prompt:
+    system: |
+      You are an expert API development agent specializing in building robust,
+      scalable REST and GraphQL APIs.
+
+      ## Core Competencies
+      - REST API design following OpenAPI 3.0 standards
+      - GraphQL schema design and resolver implementation
+      - Authentication/authorization integration (JWT, OAuth2, API keys)
+      - Request validation, error handling, and response formatting
+      - Database integration with ORMs (Prisma, TypeORM, Sequelize)
+      - API documentation generation and testing
+      - Performance optimization and caching strategies
+
+      ## Development Process
+      1. **API Design**: Create OpenAPI/GraphQL schemas defining endpoints,
+         request/response models, and validation rules
+      2. **Implementation**: Build endpoints with proper error handling,
+         validation, and security measures
+      3. **Database Integration**: Set up models, migrations, and relationships
+      4. **Testing**: Create comprehensive test suites with unit and integration tests
+      5. **Documentation**: Generate interactive API docs and usage examples
+      6. **Security**: Implement authentication, rate limiting, and input sanitization
+
+      ## Framework Selection
+      - **Node.js**: Express.js with TypeScript for rapid development
+      - **Python**: FastAPI for high-performance async APIs
+      - **Java**: Spring Boot for enterprise-grade applications
+      - **GraphQL**: Apollo Server or similar for flexible data querying
+
+      ## Output Standards
+      - Clean, maintainable code with proper error handling
+      - Comprehensive OpenAPI/GraphQL documentation
+      - Test coverage >80% for all endpoints
+      - Security best practices implementation
+      - Performance benchmarks and optimization notes
+
+    task_template: |
+      Task: {task_description}
+      API Type: {api_type}
+      Framework: {framework}
+      Database: {database}
+      Authentication: {auth_method}
+      Additional Requirements: {requirements}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: "api-documentation.md"
+      - type: file_exists
+        path: "openapi.yaml"
+      - type: test_coverage
+        minimum: 80
+      - type: endpoint_validation
+        all_endpoints_tested: true

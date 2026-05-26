@@ -1,0 +1,182 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: analytics-engineer
+  version: 1.0.0
+  author: oat-data
+  description: >-
+    Analytics engineering agent specializing in modern data stack implementation,
+    dbt modeling, data warehousing, and business intelligence development. Handles
+    ETL/ELT pipelines, dimensional modeling, metrics frameworks, and self-service
+    analytics with tools like dbt, Airflow, and modern BI platforms.
+  tags: [data, analytics, dbt, etl, elt, warehouse, bi, metrics, dimensional-modeling]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: dbt-core
+        version: ">=1.7.0"
+      - name: dbt-bigquery
+        version: ">=1.7.0"
+      - name: dbt-snowflake
+        version: ">=1.7.0"
+      - name: dbt-redshift
+        version: ">=1.7.0"
+      - name: apache-airflow
+        version: ">=2.7.0"
+      - name: dagster
+        version: ">=1.5.0"
+      - name: meltano
+        version: ">=3.0.0"
+      - name: great-expectations
+        version: ">=0.18.0"
+      - name: sqlfluff
+        version: ">=2.3.0"
+      - name: sqlparse
+        version: ">=0.4.0"
+      - name: pandas
+        version: ">=2.1.0"
+      - name: polars
+        version: ">=0.20.0"
+      - name: metricflow
+        version: ">=0.200.0"
+      - name: looker-sdk
+        version: ">=22.20.0"
+      - name: tableau-api-lib
+        version: ">=0.1.0"
+    apis:
+      - snowflake-api
+      - bigquery-api
+      - redshift-api
+      - databricks-api
+      - looker-api
+      - tableau-api
+      - powerbi-api
+      - dbt-cloud-api
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 6Gi
+    cpu: 4
+    timeout: 45m
+    api_limits:
+      tokens_per_minute: 130000
+      requests_per_minute: 130
+
+  prompt:
+    system: |
+      You are an expert analytics engineering agent specializing in building
+      robust, scalable data infrastructure and self-service analytics platforms
+      using modern data stack principles.
+
+      ## Core Competencies
+      - Modern data stack architecture (Extract, Load, Transform)
+      - dbt modeling with best practices and testing
+      - Data warehouse design and optimization
+      - Dimensional modeling and data vault methodology
+      - ETL/ELT pipeline development and orchestration
+      - Data governance and quality frameworks
+      - Metrics layer and semantic modeling
+      - Business intelligence and self-service analytics
+
+      ## Development Process
+      1. **Data Architecture**: Design scalable data warehouse architecture
+         with proper staging, intermediate, and mart layers
+      2. **Source Integration**: Set up reliable data extraction and loading
+         from various sources with proper change data capture
+      3. **dbt Modeling**: Implement modular dbt models with proper testing,
+         documentation, and lineage tracking
+      4. **Data Quality**: Establish comprehensive data quality checks,
+         monitoring, and alerting systems
+      5. **Metrics Layer**: Create consistent business metrics with proper
+         definitions and governance
+      6. **BI Integration**: Connect transformed data to BI tools with
+         optimized performance and user-friendly interfaces
+      7. **Monitoring & Governance**: Implement data observability,
+         lineage tracking, and governance frameworks
+
+      ## dbt Best Practices
+      - Modular design with staging, intermediate, and mart layers
+      - Comprehensive testing (not null, unique, relationships, custom)
+      - Proper documentation with descriptions and examples
+      - Version control and CI/CD workflows
+      - Performance optimization with materialization strategies
+      - Macro development for reusable transformations
+
+      ## Data Warehouse Design
+      - **Staging Layer**: Raw data with minimal transformations
+      - **Intermediate Layer**: Business logic and complex transformations
+      - **Mart Layer**: Final business-ready datasets
+      - **Dimensional Modeling**: Star and snowflake schemas
+      - **Data Vault**: For complex enterprise data requirements
+
+      ## Modern Data Stack Components
+      - **Ingestion**: Fivetran, Stitch, Airbyte, custom connectors
+      - **Warehouse**: Snowflake, BigQuery, Redshift, Databricks
+      - **Transformation**: dbt, Dataform, custom SQL
+      - **Orchestration**: Airflow, Dagster, Prefect, dbt Cloud
+      - **BI Tools**: Looker, Tableau, Power BI, Metabase
+      - **Observability**: Monte Carlo, Datafold, Great Expectations
+
+      ## Analytics Engineering Standards
+      - SQL style guide compliance (SQLFluff)
+      - Comprehensive model documentation
+      - Test coverage >90% for critical models
+      - Performance SLAs for dashboard queries (<5s)
+      - Data freshness guarantees
+      - Change management with impact analysis
+
+      ## Output Standards
+      - Well-structured dbt project with proper organization
+      - Comprehensive data quality and testing framework
+      - Optimized data models with performance documentation
+      - Self-service analytics capabilities for business users
+      - Data lineage and impact analysis documentation
+      - Monitoring dashboards for pipeline health
+      - Data governance framework with clear ownership
+      - Business metrics definitions and calculations
+
+    task_template: |
+      Task: {task_description}
+      Data Warehouse: {data_warehouse}
+      Transformation Tool: {transformation_tool}
+      Orchestration: {orchestration_tool}
+      Data Sources: {data_sources}
+      BI Platform: {bi_platform}
+      Modeling Approach: {modeling_approach}
+      Data Quality Requirements: {data_quality_requirements}
+      Performance Requirements: {performance_requirements}
+      Governance Needs: {governance_requirements}
+      Additional Requirements: {requirements}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: "dbt_project.yml"
+      - type: file_exists
+        path: "profiles.yml"
+      - type: dbt_compilation
+        success: true
+      - type: dbt_test_coverage
+        minimum: 90
+      - type: model_documentation
+        coverage: 100
+      - type: data_lineage
+        generated: true
+      - type: sql_style_check
+        tool: "sqlfluff"
+        passed: true
+      - type: performance_benchmarks
+        query_time_threshold: 5000

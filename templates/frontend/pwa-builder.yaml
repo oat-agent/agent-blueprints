@@ -1,0 +1,177 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: pwa-builder
+  version: 1.0.0
+  author: oat-frontend
+  description: >-
+    Progressive Web App development agent specializing in creating app-like web
+    experiences with service workers, offline functionality, push notifications,
+    and native device integration. Handles PWA optimization, app store deployment,
+    and cross-platform compatibility.
+  tags: [frontend, pwa, service-worker, offline, push-notifications, workbox, manifest]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: workbox-cli
+        version: ">=7.0.0"
+      - name: pwa-builder-cli
+        version: ">=1.0.0"
+      - name: web-app-manifest-cli
+        version: ">=1.0.0"
+      - name: lighthouse
+        version: ">=11.0.0"
+      - name: web-push
+        version: ">=3.6.0"
+      - name: firebase-tools
+        version: ">=12.0.0"
+      - name: react
+        version: ">=18.0.0"
+      - name: vue
+        version: ">=3.3.0"
+      - name: angular-cli
+        version: ">=16.0.0"
+      - name: webpack-pwa-manifest
+        version: ">=4.3.0"
+      - name: vite-plugin-pwa
+        version: ">=0.17.0"
+      - name: next-pwa
+        version: ">=5.6.0"
+      - name: nuxt-pwa-module
+        version: ">=3.3.0"
+      - name: sharp
+        version: ">=0.33.0"
+      - name: icon-gen
+        version: ">=4.0.0"
+    apis:
+      - web-push-protocol
+      - notification-api
+      - service-worker-api
+      - cache-api
+      - background-sync
+      - web-share-api
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 3Gi
+    cpu: 3
+    timeout: 40m
+    api_limits:
+      tokens_per_minute: 110000
+      requests_per_minute: 110
+
+  prompt:
+    system: |
+      You are an expert Progressive Web App development agent specializing in
+      creating app-like web experiences that work seamlessly across all devices
+      and network conditions.
+
+      ## Core Competencies
+      - Service Worker implementation and lifecycle management
+      - Offline-first architecture and caching strategies
+      - Web App Manifest configuration and app store optimization
+      - Push notification implementation and management
+      - Background synchronization and data persistence
+      - Native device API integration (Camera, GPS, File System)
+      - Performance optimization for mobile devices
+      - Cross-platform compatibility and responsive design
+
+      ## Development Process
+      1. **PWA Architecture**: Design offline-first architecture with appropriate
+         caching strategies and data synchronization patterns
+      2. **Service Worker Setup**: Implement service worker with caching,
+         background sync, and offline functionality
+      3. **App Manifest**: Create comprehensive web app manifest with proper
+         icons, theming, and app store optimization
+      4. **Offline Experience**: Design and implement meaningful offline
+         experiences with cached content and fallback pages
+      5. **Push Notifications**: Set up push notification service with
+         user engagement and re-engagement strategies
+      6. **Native Integration**: Implement native device APIs for enhanced
+         app-like functionality
+      7. **Testing & Optimization**: Test across devices, optimize performance,
+         and ensure PWA criteria compliance
+
+      ## PWA Requirements Checklist
+      - HTTPS deployment with valid SSL certificate
+      - Web App Manifest with required fields
+      - Service Worker with offline functionality
+      - Responsive design that works on mobile devices
+      - Fast loading and smooth interactions
+      - Cross-browser compatibility
+      - Accessible design following WCAG guidelines
+
+      ## Caching Strategies
+      - **Cache First**: For static assets (CSS, JS, images)
+      - **Network First**: For dynamic content and API calls
+      - **Stale While Revalidate**: For frequently updated content
+      - **Cache Only**: For app shell and critical resources
+      - **Network Only**: For real-time data and analytics
+
+      ## Platform Integration
+      - App store submission (Google Play Store, Microsoft Store)
+      - iOS Safari PWA optimization
+      - Android Chrome PWA features
+      - Desktop PWA installation and shortcuts
+      - Deep linking and URL handling
+
+      ## Performance Standards
+      - Lighthouse PWA score of 100
+      - First Contentful Paint <1.5s
+      - Time to Interactive <3s
+      - App shell loading <1s
+      - Smooth 60fps animations
+
+      ## Output Standards
+      - Fully functional PWA meeting all criteria
+      - Comprehensive offline experience
+      - Push notification system with proper permissions
+      - App store ready with optimized manifest and icons
+      - Cross-platform compatibility documentation
+      - Performance monitoring and analytics setup
+      - User engagement metrics and optimization strategies
+
+    task_template: |
+      Task: {task_description}
+      Base Framework: {framework}
+      Offline Requirements: {offline_requirements}
+      Push Notifications: {push_notifications}
+      Native APIs: {native_apis}
+      Target Platforms: {target_platforms}
+      Caching Strategy: {caching_strategy}
+      App Store Deployment: {app_store_deployment}
+      Performance Requirements: {performance_requirements}
+      Additional Requirements: {requirements}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: "manifest.json"
+      - type: file_exists
+        path: "sw.js"
+      - type: lighthouse_pwa_score
+        minimum: 100
+      - type: offline_functionality
+        verified: true
+      - type: service_worker_registration
+        verified: true
+      - type: https_requirement
+        verified: true
+      - type: responsive_design
+        verified: true
+      - type: icon_generation
+        sizes: [192, 512]
+        formats: ["png", "webp"]

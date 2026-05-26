@@ -1,0 +1,303 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: release-manager
+  version: 1.0.0
+  author: oat-automation
+  description: >-
+    Automated release and deployment management agent that orchestrates software releases,
+    manages deployment pipelines, handles rollbacks, and coordinates multi-environment
+    deployments using GitOps, blue-green, canary, and feature flag strategies.
+  tags: [release, deployment, gitops, cd, kubernetes, docker, terraform, automation]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: gh
+        version: ">=2.32.0"
+      - name: gitlab-ci-lint
+        version: ">=1.0.0"
+      - name: argocd
+        version: ">=2.8.0"
+      - name: flux
+        version: ">=2.1.0"
+      - name: helm
+        version: ">=3.12.0"
+      - name: kubectl
+        version: ">=1.28.0"
+      - name: kustomize
+        version: ">=5.1.0"
+      - name: docker
+        version: ">=24.0.0"
+      - name: terraform
+        version: ">=1.5.0"
+      - name: ansible
+        version: ">=8.0.0"
+      - name: semantic-release
+        version: ">=21.0.0"
+      - name: conventional-changelog
+        version: ">=4.0.0"
+      - name: release-it
+        version: ">=16.0.0"
+      - name: jenkins-cli
+        version: ">=2.401.0"
+      - name: spinnaker-cli
+        version: ">=1.29.0"
+      - name: istio
+        version: ">=1.19.0"
+      - name: linkerd
+        version: ">=2.14.0"
+      - name: flagger
+        version: ">=1.32.0"
+      - name: argo-rollouts
+        version: ">=1.6.0"
+      - name: feature-flags
+        version: ">=1.0.0"
+      - name: launchdarkly-cli
+        version: ">=6.0.0"
+      - name: unleash-cli
+        version: ">=4.0.0"
+      - name: jq
+        version: ">=1.6.0"
+      - name: yq
+        version: ">=4.35.0"
+      - name: cosign
+        version: ">=2.2.0"
+      - name: syft
+        version: ">=0.90.0"
+      - name: grype
+        version: ">=0.72.0"
+    apis:
+      - github
+      - gitlab
+      - azure-devops
+      - jenkins
+      - spinnaker
+      - argocd
+      - flux
+      - kubernetes
+      - docker-registry
+      - helm-charts
+      - aws-ecr
+      - gcp-artifact-registry
+      - azure-container-registry
+      - slack
+      - teams
+      - pagerduty
+      - datadog
+      - grafana
+      - prometheus
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 6Gi
+    cpu: 4
+    timeout: 60m
+    api_limits:
+      tokens_per_minute: 160000
+      requests_per_minute: 100
+
+  prompt:
+    system: |
+      You are a release management agent for the Open Agent Teams system.
+      Your role is to automate and orchestrate software releases, manage deployment
+      pipelines, and ensure reliable delivery across multiple environments.
+
+      ## Tools available
+      - `gh`/`gitlab-ci-lint`: Git platform automation
+      - `argocd`/`flux`: GitOps continuous deployment
+      - `helm`/`kubectl`/`kustomize`: Kubernetes deployment management
+      - `docker`: Container image management
+      - `terraform`/`ansible`: Infrastructure automation
+      - `semantic-release`: Automated versioning and releasing
+      - `argo-rollouts`/`flagger`: Advanced deployment strategies
+      - `cosign`/`syft`/`grype`: Security and vulnerability scanning
+
+      ## Release management process
+
+      1. **Release planning and preparation**:
+         - Analyze commit history and determine version increments
+         - Generate changelogs from conventional commits
+         - Validate release readiness with automated checks
+         - Coordinate dependency updates and compatibility
+         - Plan deployment strategy and rollback procedures
+         - Prepare release documentation and communication
+
+      2. **Automated versioning and tagging**:
+         - Implement semantic versioning (SemVer) standards
+         - Generate version numbers from commit messages
+         - Create and push git tags automatically
+         - Update package.json, pom.xml, or equivalent files
+         - Generate release notes and changelogs
+         - Coordinate multi-repository version synchronization
+
+      3. **Build and artifact management**:
+         - Trigger CI/CD pipelines for release builds
+         - Build and tag container images with proper versioning
+         - Push artifacts to appropriate registries
+         - Sign container images and artifacts for security
+         - Generate SBOMs (Software Bill of Materials)
+         - Perform vulnerability scanning on artifacts
+
+      4. **Deployment strategies implementation**:
+
+         ### Blue-Green Deployments
+         - Create parallel production environments
+         - Route traffic between blue and green environments
+         - Implement automated health checks and validation
+         - Coordinate database migrations and data sync
+         - Automate traffic switching and rollback procedures
+
+         ### Canary Deployments
+         - Deploy to subset of production infrastructure
+         - Implement gradual traffic shifting strategies
+         - Monitor key metrics and error rates
+         - Automate promotion or rollback decisions
+         - Configure feature flags for runtime control
+
+         ### Rolling Deployments
+         - Implement zero-downtime rolling updates
+         - Coordinate pod replacement in Kubernetes
+         - Monitor application health during rollouts
+         - Implement circuit breakers and health checks
+         - Automate rollback on deployment failures
+
+      5. **GitOps workflow management**:
+         - Maintain GitOps repository structure
+         - Automate manifest updates for new releases
+         - Implement approval workflows for production
+         - Coordinate multi-cluster deployments
+         - Monitor GitOps sync status and conflicts
+
+      6. **Multi-environment orchestration**:
+         - Coordinate deployments across dev/staging/prod
+         - Implement environment promotion pipelines
+         - Manage environment-specific configurations
+         - Automate smoke tests and validation
+         - Coordinate database migrations and schema changes
+
+      7. **Monitoring and observability**:
+         - Implement deployment metrics collection
+         - Set up automated health checks and SLIs
+         - Create dashboards for release monitoring
+         - Configure alerting for deployment issues
+         - Track deployment frequency and lead time
+
+      ## Platform-specific implementations
+
+      ### Kubernetes with GitOps
+      - ArgoCD application and project configuration
+      - Flux GitRepository and Kustomization setup
+      - Helm chart templating and value management
+      - Kubernetes manifests with Kustomize overlays
+      - RBAC and security policy enforcement
+
+      ### Container Registries
+      - Docker image tagging and lifecycle management
+      - Multi-architecture image building
+      - Vulnerability scanning integration
+      - Image signing and attestation
+      - Registry cleanup and retention policies
+
+      ### Cloud Platforms
+      - AWS ECS/EKS deployment automation
+      - GCP Cloud Run/GKE deployment strategies
+      - Azure Container Instances/AKS orchestration
+      - Serverless deployment with Lambda/Functions
+      - Infrastructure as Code with Terraform
+
+      ### CI/CD Integration
+      - GitHub Actions workflow optimization
+      - GitLab CI/CD pipeline configuration
+      - Jenkins pipeline automation
+      - Azure DevOps release management
+      - Spinnaker deployment pipelines
+
+      ## Feature flag integration
+      - LaunchDarkly flag management
+      - Unleash feature toggle integration
+      - Custom feature flag implementations
+      - Runtime configuration management
+      - A/B testing coordination
+
+      ## Security and compliance
+      - Container image vulnerability scanning
+      - SBOM generation and tracking
+      - Digital signature verification
+      - Compliance policy enforcement
+      - Audit trail maintenance
+
+      ## Quality standards
+      - Zero-downtime deployment capabilities
+      - Automated rollback on failure detection
+      - Comprehensive monitoring and alerting
+      - Security scanning and compliance checks
+      - Performance impact validation
+      - Audit logging and traceability
+
+      ## Output requirements
+      - Create `pipelines/` directory with CI/CD configurations
+      - Generate `gitops/` directory with deployment manifests
+      - Save `configs/` directory with environment configurations
+      - Create `scripts/` directory with automation scripts
+      - Generate `docs/` directory with runbooks and procedures
+      - Include `monitoring/` directory with observability configs
+      - Create `security/` directory with scanning and policy configs
+
+    task_template: |
+      Task: {task_description}
+      Application: {application_name}
+      Deployment Strategy: {deployment_strategy}
+      Target Environments: {target_environments}
+      Platform: {platform}
+      Release Frequency: {release_frequency}
+      Rollback Requirements: {rollback_requirements}
+      Security Requirements: {security_requirements}
+      Monitoring Requirements: {monitoring_requirements}
+
+  behavior:
+    auto_complete: true
+    require_verification: true
+    pr_creation: required
+
+  success:
+    conditions:
+      - type: directory_exists
+        path: pipelines/
+      - type: file_pattern_exists
+        pattern: "pipelines/**/*.{yml,yaml,json}"
+      - type: directory_exists
+        path: gitops/
+      - type: file_pattern_exists
+        pattern: "gitops/**/*.{yml,yaml}"
+      - type: directory_exists
+        path: configs/
+      - type: file_pattern_exists
+        pattern: "configs/**/*.{yml,yaml,env}"
+      - type: directory_exists
+        path: scripts/
+      - type: file_pattern_exists
+        pattern: "scripts/**/*.{sh,py,js}"
+      - type: directory_exists
+        path: docs/
+      - type: file_exists
+        path: docs/DEPLOYMENT.md
+      - type: file_exists
+        path: docs/ROLLBACK.md
+      - type: directory_exists
+        path: monitoring/
+      - type: directory_exists
+        path: security/
+      - type: command_success
+        command: "helm lint gitops/charts/* || echo 'No Helm charts found'"
+      - type: command_success
+        command: "kubectl --dry-run=client apply -f gitops/manifests/ || echo 'No manifests found'"
+      - type: command_success
+        command: "yamllint pipelines/ gitops/ configs/ || echo 'YAML validation passed'"

@@ -133,3 +133,141 @@ templates:
     author: oat-devops
     verified: true
     stability: beta
+
+  # --- ui ---------------------------------------------------------------------
+  - name: component-builder
+    path: templates/ui/component-builder.yaml
+    author: oat-ui
+    verified: true
+    stability: stable
+
+  - name: accessibility-auditor
+    path: templates/ui/accessibility-auditor.yaml
+    author: oat-ui
+    verified: true
+    stability: stable
+
+  - name: design-system-enforcer
+    path: templates/ui/design-system-enforcer.yaml
+    author: oat-ui
+    verified: true
+    stability: beta
+
+  - name: responsive-optimizer
+    path: templates/ui/responsive-optimizer.yaml
+    author: oat-ui
+    verified: true
+    stability: stable
+
+  # --- backend ----------------------------------------------------------------
+  - name: api-builder
+    path: templates/backend/api-builder.yaml
+    author: oat-backend
+    verified: true
+    stability: stable
+
+  - name: microservice-architect
+    path: templates/backend/microservice-architect.yaml
+    author: oat-backend
+    verified: true
+    stability: stable
+
+  - name: auth-implementer
+    path: templates/backend/auth-implementer.yaml
+    author: oat-backend
+    verified: true
+    stability: stable
+
+  - name: queue-processor
+    path: templates/backend/queue-processor.yaml
+    author: oat-backend
+    verified: true
+    stability: beta
+
+  # --- automation -------------------------------------------------------------
+  - name: workflow-automator
+    path: templates/automation/workflow-automator.yaml
+    author: oat-automation
+    verified: true
+    stability: stable
+
+  - name: data-pipeline-builder
+    path: templates/automation/data-pipeline-builder.yaml
+    author: oat-automation
+    verified: true
+    stability: stable
+
+  - name: release-manager
+    path: templates/automation/release-manager.yaml
+    author: oat-automation
+    verified: true
+    stability: stable
+
+  - name: monitoring-alerter
+    path: templates/automation/monitoring-alerter.yaml
+    author: oat-automation
+    verified: true
+    stability: stable
+
+  # --- frontend ---------------------------------------------------------------
+  - name: spa-developer
+    path: templates/frontend/spa-developer.yaml
+    author: oat-frontend
+    verified: true
+    stability: stable
+
+  - name: static-site-generator
+    path: templates/frontend/static-site-generator.yaml
+    author: oat-frontend
+    verified: true
+    stability: stable
+
+  - name: pwa-builder
+    path: templates/frontend/pwa-builder.yaml
+    author: oat-frontend
+    verified: true
+    stability: beta
+
+  # --- data -------------------------------------------------------------------
+  - name: ml-pipeline-builder
+    path: templates/data/ml-pipeline-builder.yaml
+    author: oat-data
+    verified: true
+    stability: beta
+
+  - name: analytics-engineer
+    path: templates/data/analytics-engineer.yaml
+    author: oat-data
+    verified: true
+    stability: stable
+
+  - name: data-quality-validator
+    path: templates/data/data-quality-validator.yaml
+    author: oat-data
+    verified: true
+    stability: stable
+
+  # --- infrastructure ---------------------------------------------------------
+  - name: cloud-architect
+    path: templates/infrastructure/cloud-architect.yaml
+    author: oat-infra
+    verified: true
+    stability: stable
+
+  - name: network-optimizer
+    path: templates/infrastructure/network-optimizer.yaml
+    author: oat-infra
+    verified: true
+    stability: beta
+
+  - name: disaster-recovery
+    path: templates/infrastructure/disaster-recovery.yaml
+    author: oat-infra
+    verified: true
+    stability: stable
+
+  - name: cost-optimizer
+    path: templates/infrastructure/cost-optimizer.yaml
+    author: oat-infra
+    verified: true
+    stability: stable

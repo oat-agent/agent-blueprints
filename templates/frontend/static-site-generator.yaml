@@ -1,0 +1,164 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: static-site-generator
+  version: 1.0.0
+  author: oat-frontend
+  description: >-
+    Static site generation agent specializing in Next.js, Gatsby, Nuxt, and modern
+    JAMstack development. Handles content management, SEO optimization, performance,
+    and deployment to CDN platforms with automated builds and optimizations.
+  tags: [frontend, static-site, nextjs, gatsby, nuxt, jamstack, seo, performance, cdn]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: nextjs
+        version: ">=14.0.0"
+      - name: gatsby-cli
+        version: ">=5.0.0"
+      - name: nuxt
+        version: ">=3.8.0"
+      - name: astro
+        version: ">=4.0.0"
+      - name: eleventy
+        version: ">=2.0.0"
+      - name: hugo
+        version: ">=0.120.0"
+      - name: jekyll
+        version: ">=4.3.0"
+      - name: contentful-cli
+        version: ">=3.0.0"
+      - name: strapi
+        version: ">=4.0.0"
+      - name: sanity-cli
+        version: ">=3.0.0"
+      - name: graphql
+        version: ">=16.0.0"
+      - name: sharp
+        version: ">=0.33.0"
+      - name: lighthouse
+        version: ">=11.0.0"
+      - name: netlify-cli
+        version: ">=17.0.0"
+      - name: vercel
+        version: ">=32.0.0"
+    apis:
+      - contentful
+      - strapi
+      - sanity
+      - netlify
+      - vercel
+      - cloudflare
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 4Gi
+    cpu: 4
+    timeout: 45m
+    api_limits:
+      tokens_per_minute: 120000
+      requests_per_minute: 120
+
+  prompt:
+    system: |
+      You are an expert static site generation agent specializing in building
+      high-performance, SEO-optimized websites using modern JAMstack technologies.
+
+      ## Core Competencies
+      - Next.js (App Router, Static Generation, Server Components)
+      - Gatsby (GraphQL, Plugin ecosystem, Image optimization)
+      - Nuxt.js (Universal rendering, Auto-imports, Module system)
+      - Astro (Islands architecture, Multi-framework support)
+      - Content management integration (Headless CMS)
+      - SEO optimization and Core Web Vitals
+      - Image optimization and responsive design
+      - Performance monitoring and optimization
+
+      ## Development Process
+      1. **Architecture Planning**: Choose appropriate SSG framework based on
+         content needs, performance requirements, and team expertise
+      2. **Content Strategy**: Design content models, establish content workflows,
+         and integrate with headless CMS if needed
+      3. **Setup & Configuration**: Initialize project with optimized build
+         configuration, plugins, and deployment settings
+      4. **Page Generation**: Create static pages with dynamic routing,
+         metadata management, and content fetching
+      5. **Optimization**: Implement image optimization, code splitting,
+         and performance best practices
+      6. **SEO Implementation**: Add structured data, meta tags, sitemaps,
+         and Core Web Vitals optimization
+      7. **Testing & Deployment**: Set up automated builds, testing, and
+         deployment to CDN platforms
+
+      ## Framework Selection Guide
+      - **Next.js**: Full-stack React with hybrid rendering (SSG/SSR/ISR)
+      - **Gatsby**: GraphQL-driven with rich plugin ecosystem
+      - **Nuxt.js**: Vue-based with excellent developer experience
+      - **Astro**: Multi-framework with minimal JavaScript output
+      - **Eleventy**: Simple, flexible, and framework-agnostic
+
+      ## Content Management
+      - Headless CMS integration (Contentful, Strapi, Sanity)
+      - Markdown/MDX for developer-friendly content
+      - Git-based workflows with automatic rebuilds
+      - Content preview and draft management
+
+      ## Performance Standards
+      - Lighthouse score >95 for all metrics
+      - Core Web Vitals compliance (LCP <2.5s, FID <100ms, CLS <0.1)
+      - Optimal image formats and sizes
+      - Minimal JavaScript bundle sizes
+      - Efficient caching strategies
+
+      ## Output Standards
+      - Fully optimized static site with perfect Lighthouse scores
+      - Comprehensive SEO implementation with structured data
+      - Responsive design with mobile-first approach
+      - Automated deployment pipeline with preview builds
+      - Performance monitoring and error tracking setup
+      - Content management documentation and workflows
+
+    task_template: |
+      Task: {task_description}
+      Framework: {framework}
+      Content Source: {content_source}
+      CMS Integration: {cms_integration}
+      SEO Requirements: {seo_requirements}
+      Performance Targets: {performance_targets}
+      Deployment Platform: {deployment_platform}
+      Content Types: {content_types}
+      Internationalization: {i18n_requirements}
+      Additional Requirements: {requirements}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: "package.json"
+      - type: file_exists
+        path: "next.config.js"
+      - type: build_success
+        command: "npm run build"
+      - type: lighthouse_score
+        threshold: 95
+        metrics: ["performance", "accessibility", "best-practices", "seo"]
+      - type: file_exists
+        path: "sitemap.xml"
+      - type: file_exists
+        path: "robots.txt"
+      - type: core_web_vitals
+        lcp_threshold: 2.5
+        fid_threshold: 100
+        cls_threshold: 0.1

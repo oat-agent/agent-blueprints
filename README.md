@@ -19,7 +19,7 @@ factory.CreateFromTemplate(ctx, "security-auditor", map[string]interface{}{
 })
 ```
 
-## Available Templates
+## Available Templates (43 total)
 
 ### Security (3 templates)
 - **security-auditor** - Comprehensive security vulnerability scanning
@@ -46,6 +46,40 @@ factory.CreateFromTemplate(ctx, "security-auditor", map[string]interface{}{
 - **docker-builder** - Container image optimization
 - **kubernetes-deployer** - Kubernetes deployment management
 - **terraform-planner** - Infrastructure as Code planning
+
+### UI (4 templates)
+- **component-builder** - React/Vue/Angular component creation
+- **accessibility-auditor** - Web accessibility compliance
+- **design-system-enforcer** - Design system consistency
+- **responsive-optimizer** - Responsive design and mobile optimization
+
+### Backend (4 templates)
+- **api-builder** - REST/GraphQL API development
+- **microservice-architect** - Microservice design and implementation
+- **auth-implementer** - Authentication and authorization
+- **queue-processor** - Message queue and async processing
+
+### Automation (4 templates)
+- **workflow-automator** - Business process automation
+- **data-pipeline-builder** - ETL/ELT pipeline creation
+- **release-manager** - Automated release management
+- **monitoring-alerter** - Monitoring and incident response
+
+### Frontend (3 templates)
+- **spa-developer** - Single Page Application development
+- **static-site-generator** - Static site generation (Next.js, Gatsby)
+- **pwa-builder** - Progressive Web App creation
+
+### Data (3 templates)
+- **ml-pipeline-builder** - Machine learning pipeline creation
+- **analytics-engineer** - Analytics and BI development
+- **data-quality-validator** - Data quality and validation
+
+### Infrastructure (4 templates)
+- **cloud-architect** - Cloud infrastructure design
+- **network-optimizer** - Network configuration and optimization
+- **disaster-recovery** - Backup and disaster recovery planning
+- **cost-optimizer** - Cloud cost optimization and FinOps
 
 ### Documentation (3 templates)
 - **api-documenter** - API documentation generation
