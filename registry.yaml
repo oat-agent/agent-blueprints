@@ -1,0 +1,135 @@
+# Agent Blueprints Registry
+#
+# This manifest is consumed by the OAT factory's TemplateRegistry.FetchFromRegistry().
+# The factory reads this file from `<registry_url>/registry.yaml`, then loads each
+# template at `<registry_url>/<path>`.
+#
+# Schema (RegistryManifest in open-agent-teams-8/internal/factory/registry.go):
+#   version:   string
+#   templates: list of { name, path, author, verified }
+#
+# `stability` is an advisory field (not parsed by the factory today) used by tooling
+# in this repo to surface readiness. Allowed values: stable | beta | experimental.
+
+version: 1.0.0
+
+templates:
+  # --- security ---------------------------------------------------------------
+  - name: security-auditor
+    path: templates/security/security-auditor.yaml
+    author: oat-security
+    verified: true
+    stability: stable
+
+  - name: vulnerability-scanner
+    path: templates/security/vulnerability-scanner.yaml
+    author: oat-security
+    verified: true
+    stability: stable
+
+  - name: compliance-checker
+    path: templates/security/compliance-checker.yaml
+    author: oat-security
+    verified: true
+    stability: beta
+
+  # --- performance ------------------------------------------------------------
+  - name: performance-profiler
+    path: templates/performance/performance-profiler.yaml
+    author: oat-performance
+    verified: true
+    stability: stable
+
+  - name: load-tester
+    path: templates/performance/load-tester.yaml
+    author: oat-performance
+    verified: true
+    stability: stable
+
+  - name: benchmark-runner
+    path: templates/performance/benchmark-runner.yaml
+    author: oat-performance
+    verified: true
+    stability: beta
+
+  # --- database ---------------------------------------------------------------
+  - name: database-migrator
+    path: templates/database/database-migrator.yaml
+    author: oat-data
+    verified: true
+    stability: beta
+
+  - name: schema-validator
+    path: templates/database/schema-validator.yaml
+    author: oat-data
+    verified: true
+    stability: beta
+
+  - name: data-synchronizer
+    path: templates/database/data-synchronizer.yaml
+    author: oat-data
+    verified: false
+    stability: experimental
+
+  # --- documentation ----------------------------------------------------------
+  - name: api-documenter
+    path: templates/documentation/api-documenter.yaml
+    author: oat-docs
+    verified: true
+    stability: stable
+
+  - name: readme-generator
+    path: templates/documentation/readme-generator.yaml
+    author: oat-docs
+    verified: true
+    stability: stable
+
+  - name: changelog-maintainer
+    path: templates/documentation/changelog-maintainer.yaml
+    author: oat-docs
+    verified: true
+    stability: stable
+
+  # --- testing ----------------------------------------------------------------
+  - name: integration-tester
+    path: templates/testing/integration-tester.yaml
+    author: oat-qa
+    verified: true
+    stability: stable
+
+  - name: e2e-tester
+    path: templates/testing/e2e-tester.yaml
+    author: oat-qa
+    verified: true
+    stability: beta
+
+  - name: chaos-engineer
+    path: templates/testing/chaos-engineer.yaml
+    author: oat-qa
+    verified: false
+    stability: experimental
+
+  # --- devops -----------------------------------------------------------------
+  - name: ci-cd-optimizer
+    path: templates/devops/ci-cd-optimizer.yaml
+    author: oat-devops
+    verified: true
+    stability: stable
+
+  - name: docker-builder
+    path: templates/devops/docker-builder.yaml
+    author: oat-devops
+    verified: true
+    stability: stable
+
+  - name: kubernetes-deployer
+    path: templates/devops/kubernetes-deployer.yaml
+    author: oat-devops
+    verified: true
+    stability: beta
+
+  - name: terraform-planner
+    path: templates/devops/terraform-planner.yaml
+    author: oat-devops
+    verified: true
+    stability: beta

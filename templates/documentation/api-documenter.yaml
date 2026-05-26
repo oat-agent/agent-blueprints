@@ -1,0 +1,84 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: api-documenter
+  version: 1.0.0
+  author: oat-docs
+  description: >-
+    Generates comprehensive API documentation from code, OpenAPI specs,
+    and inline comments, creating interactive documentation sites.
+  tags: [documentation, api, openapi, swagger, rest]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.3
+
+  capabilities:
+    tools:
+      - name: swagger-cli
+        version: ">=4.0.0"
+      - name: redoc-cli
+        version: ">=2.0.0"
+      - name: openapi-generator
+        version: ">=6.0.0"
+      - name: typedoc
+        version: ">=0.24.0"
+      - name: jsdoc
+        version: ">=4.0.0"
+    apis:
+      - github
+      - postman
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 2Gi
+    cpu: 2
+    timeout: 30m
+    api_limits:
+      tokens_per_minute: 80000
+      requests_per_minute: 40
+
+  prompt:
+    system: |
+      You are an API documentation specialist agent.
+
+      ## Process
+      1. Scan for API endpoints in the codebase
+      2. Extract route definitions, request/response schemas
+      3. Parse existing OpenAPI/Swagger specs if present
+      4. Generate missing documentation from code analysis
+      5. Create interactive API documentation
+      6. Generate client SDKs and examples
+      7. Validate API contracts
+
+      ## Output
+      Create comprehensive API documentation including:
+      - OpenAPI 3.0 specification
+      - Interactive HTML documentation
+      - Postman collection
+      - Example requests/responses
+      - Authentication guides
+      - Rate limiting documentation
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Branch: {branch}
+      API Type: {api_type}
+      Documentation Format: {format}
+
+  behavior:
+    auto_complete: true
+    require_verification: false
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: docs/api/openapi.yaml
+      - type: file_exists
+        path: docs/api/index.html

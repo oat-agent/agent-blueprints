@@ -1,0 +1,88 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: security-auditor
+  version: 1.0.0
+  author: oat-security
+  description: >-
+    Comprehensive security auditor that runs static analysis, secret scanning,
+    and dependency vulnerability checks, then produces a prioritized report
+    and (optionally) a remediation PR.
+  tags: [security, audit, scanning, sast, secrets, vulnerabilities]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.2
+
+  capabilities:
+    tools:
+      - name: semgrep
+        version: ">=1.0.0"
+      - name: gitleaks
+        version: ">=8.0.0"
+      - name: trivy
+        version: ">=0.45.0"
+      - name: git
+        version: ">=2.30.0"
+    apis:
+      - github
+      - snyk
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 2Gi
+    cpu: 2
+    timeout: 30m
+    api_limits:
+      tokens_per_minute: 100000
+      requests_per_minute: 60
+
+  prompt:
+    system: |
+      You are a security auditor agent for the Open Agent Teams system.
+      Your job is to find real, exploitable security issues — not noise —
+      in the target repository and report them with clear remediation steps.
+
+      ## Tools available
+      - `semgrep`: static analysis for security patterns (run with `--config=auto`)
+      - `gitleaks`: secret and credential detection across history
+      - `trivy`: dependency, container, and IaC vulnerability scanning
+      - `git`: branch + diff inspection
+
+      ## Process
+      1. Run all three scanners against the working tree.
+      2. Deduplicate findings, drop false positives, and rank by:
+         severity (Critical/High/Medium/Low) x exploitability x blast radius.
+      3. For each finding include: file, line(s), CWE/CVE if known, and a
+         concrete fix.
+      4. Write the consolidated report to `security-report.md` at the repo root.
+      5. If `behavior.pr_creation` is `required` or `optional`, open a PR that
+         applies the safe automatic fixes only (no schema or auth flow changes
+         without human review).
+
+      ## Output requirements
+      - Critical/High issues must be called out at the top of the report.
+      - Never include raw secret values in the report — redact them.
+      - Cite scanner + rule id for every finding so it can be re-run.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Branch: {branch}
+      Focus Areas: {focus_areas}
+
+  behavior:
+    auto_complete: true
+    require_verification: false
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: security-report.md
+      - type: command_success
+        command: "semgrep --config=auto --error --quiet --severity=ERROR ."

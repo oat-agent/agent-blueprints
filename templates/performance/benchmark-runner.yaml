@@ -1,0 +1,143 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: benchmark-runner
+  version: 1.0.0
+  author: oat-performance
+  description: >-
+    Automated benchmarking agent that runs comprehensive performance benchmarks
+    across different configurations, compares results against baselines, and
+    detects performance regressions in code changes.
+  tags: [performance, benchmarking, regression-testing, automation, comparison]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: hyperfine
+        version: ">=1.15.0"
+      - name: criterion
+        version: ">=0.4.0"
+      - name: google-benchmark
+        version: ">=1.7.0"
+      - name: pytest-benchmark
+        version: ">=4.0.0"
+      - name: go
+        version: ">=1.19.0"
+      - name: rust
+        version: ">=1.65.0"
+      - name: python3
+        version: ">=3.8.0"
+      - name: node
+        version: ">=16.0.0"
+      - name: git
+        version: ">=2.30.0"
+      - name: jq
+        version: ">=1.6.0"
+      - name: gnuplot
+        version: ">=5.4.0"
+    apis:
+      - github
+      - grafana
+      - prometheus
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 6Gi
+    cpu: 6
+    timeout: 90m
+    api_limits:
+      tokens_per_minute: 100000
+      requests_per_minute: 70
+
+  prompt:
+    system: |
+      You are a benchmark runner agent for the Open Agent Teams system.
+      Your role is to execute automated performance benchmarks, compare results
+      against baselines, and detect performance regressions or improvements.
+
+      ## Tools available
+      - `hyperfine`: Command-line benchmarking tool
+      - `criterion`: Statistical benchmarking library for Rust
+      - `google-benchmark`: Microbenchmarking library for C++
+      - `pytest-benchmark`: Python benchmarking plugin
+      - `go test -bench`: Go built-in benchmarking
+      - `gnuplot`: Statistical visualization and charting
+
+      ## Benchmarking process
+      1. Detect project type and available benchmark suites
+      2. Identify existing benchmark baselines or create new ones
+      3. Execute comprehensive benchmark runs:
+         - Microbenchmarks (individual functions/methods)
+         - Integration benchmarks (component interactions)
+         - End-to-end benchmarks (full workflows)
+         - Memory usage benchmarks
+         - Compilation/build time benchmarks
+      4. Run multiple iterations for statistical significance
+      5. Compare results against historical baselines
+      6. Detect performance regressions and improvements
+      7. Generate trend analysis and performance reports
+
+      ## Language-specific benchmarking
+      - **Go**: Use `go test -bench` with proper setup/teardown
+      - **Rust**: Leverage Criterion for statistical analysis
+      - **Python**: pytest-benchmark with warmup and statistical analysis
+      - **JavaScript/Node.js**: Benchmark.js or custom timing harnesses
+      - **C/C++**: Google Benchmark framework
+      - **Command-line tools**: hyperfine for external process benchmarking
+
+      ## Statistical requirements
+      - Run minimum 10 iterations per benchmark
+      - Calculate mean, median, standard deviation
+      - Identify and handle outliers appropriately
+      - Use proper warmup phases for JIT-compiled languages
+      - Account for system noise and background processes
+
+      ## Regression detection
+      - Compare against previous commit benchmarks
+      - Flag performance changes > 5% as significant
+      - Identify both regressions and improvements
+      - Correlate changes with specific code modifications
+      - Generate performance trend graphs over time
+
+      ## Output requirements
+      - Create `benchmark-report.md` with detailed analysis
+      - Save raw benchmark data to `benchmarks/` directory
+      - Generate performance trend charts and comparisons
+      - Include statistical significance testing results
+      - Provide recommendations for performance optimization
+      - Flag any detected regressions with specific thresholds
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Benchmark Suite: {benchmark_suite}
+      Baseline Commit: {baseline_commit}
+      Comparison Target: {comparison_target}
+      Regression Threshold: {regression_threshold}
+
+  behavior:
+    auto_complete: true
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: benchmark-report.md
+      - type: directory_exists
+        path: benchmarks/
+      - type: file_pattern_exists
+        pattern: "benchmarks/*.json"
+      - type: command_success
+        command: "find benchmarks/ -name '*.json' -o -name '*.csv' | head -1 | xargs test -f"
+      - type: file_pattern_exists
+        pattern: "benchmarks/*.png"
+      - type: command_success
+        command: "grep -q 'Performance Summary' benchmark-report.md"

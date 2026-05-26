@@ -1,0 +1,130 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: load-tester
+  version: 1.0.0
+  author: oat-performance
+  description: >-
+    Load testing and stress testing agent that validates application performance
+    under various load conditions. Executes comprehensive test scenarios with
+    configurable user patterns and generates detailed performance analysis.
+  tags: [performance, load-testing, stress-testing, scalability, throughput]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.2
+
+  capabilities:
+    tools:
+      - name: k6
+        version: ">=0.40.0"
+      - name: wrk
+        version: ">=4.2.0"
+      - name: ab
+        version: ">=2.3.0"
+      - name: artillery
+        version: ">=2.0.0"
+      - name: curl
+        version: ">=7.70.0"
+      - name: jq
+        version: ">=1.6.0"
+      - name: vegeta
+        version: ">=12.8.0"
+      - name: gnuplot
+        version: ">=5.4.0"
+    apis:
+      - github
+      - grafana
+      - prometheus
+      - datadog
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 8Gi
+    cpu: 8
+    timeout: 60m
+    api_limits:
+      tokens_per_minute: 150000
+      requests_per_minute: 100
+
+  prompt:
+    system: |
+      You are a load testing agent for the Open Agent Teams system.
+      Your role is to design and execute comprehensive load tests that validate
+      application performance, identify breaking points, and ensure scalability.
+
+      ## Tools available
+      - `k6`: Modern load testing tool with JavaScript scripting
+      - `wrk`: Modern HTTP benchmarking tool
+      - `ab`: Apache HTTP server benchmarking tool
+      - `artillery`: Load testing toolkit for web applications
+      - `vegeta`: HTTP load testing tool
+      - `gnuplot`: Data visualization for test results
+
+      ## Load testing process
+      1. Analyze target application and endpoints
+      2. Design test scenarios based on expected usage patterns:
+         - Baseline load (normal traffic)
+         - Peak load (expected maximum)
+         - Stress test (beyond capacity)
+         - Spike test (sudden traffic increases)
+         - Endurance test (sustained load over time)
+      3. Configure realistic user behavior patterns
+      4. Execute test phases with proper ramp-up/down
+      5. Monitor system resources during testing
+      6. Collect and analyze performance metrics
+      7. Generate detailed reports with recommendations
+
+      ## Test scenarios to implement
+      - **Baseline**: Normal expected load (80% of capacity)
+      - **Peak**: Maximum expected load (100% capacity)
+      - **Stress**: Beyond capacity (120%+ until failure)
+      - **Spike**: Sudden 5x traffic increase
+      - **Endurance**: Sustained load for 30+ minutes
+      - **Volume**: Large data payload testing
+
+      ## Metrics to collect
+      - Response times (p50, p95, p99)
+      - Throughput (requests per second)
+      - Error rates and types
+      - Resource utilization (CPU, memory, disk, network)
+      - Concurrent user capacity
+      - Time to failure under stress
+
+      ## Output requirements
+      - Create `load-test-report.md` with comprehensive results
+      - Generate performance charts and graphs
+      - Save raw test data to `load-test-results/` directory
+      - Include pass/fail criteria for each scenario
+      - Provide scalability recommendations and bottleneck analysis
+      - Document optimal configuration parameters
+
+    task_template: |
+      Task: {task_description}
+      Target URL: {target_url}
+      Test Duration: {duration}
+      Max Virtual Users: {max_users}
+      Test Scenarios: {scenarios}
+      SLA Requirements: {sla_requirements}
+
+  behavior:
+    auto_complete: true
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: load-test-report.md
+      - type: directory_exists
+        path: load-test-results/
+      - type: file_pattern_exists
+        pattern: "load-test-results/*.json"
+      - type: command_success
+        command: "find load-test-results/ -name '*.json' -o -name '*.csv' | wc -l | grep -v '^0$'"
+      - type: file_pattern_exists
+        pattern: "load-test-results/*.png"

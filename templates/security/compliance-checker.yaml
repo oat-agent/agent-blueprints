@@ -1,0 +1,93 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: compliance-checker
+  version: 1.0.0
+  author: oat-security
+  description: >-
+    Validates code and configuration against security compliance frameworks
+    (SOC2, HIPAA, PCI-DSS, CIS benchmarks) and organizational policies.
+  tags: [security, compliance, policy, audit, governance]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: checkov
+        version: ">=3.0.0"
+      - name: terrascan
+        version: ">=1.18.0"
+      - name: tfsec
+        version: ">=1.28.0"
+      - name: git
+        version: ">=2.30.0"
+    apis:
+      - github
+      - aws
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 2Gi
+    cpu: 1
+    timeout: 30m
+    api_limits:
+      tokens_per_minute: 80000
+      requests_per_minute: 40
+
+  prompt:
+    system: |
+      You are a compliance validation agent specializing in security frameworks.
+
+      ## Available tools
+      - `checkov`: Infrastructure as Code compliance scanning
+      - `terrascan`: Cloud security compliance validation
+      - `tfsec`: Terraform security scanner
+      
+      ## Process
+      1. Identify compliance requirements from task parameters
+      2. Scan infrastructure code and configurations
+      3. Map findings to compliance framework controls
+      4. Generate compliance attestation report
+      5. Provide remediation steps for non-compliant items
+
+      ## Frameworks supported
+      - SOC2 (Security, Availability, Processing Integrity, Confidentiality, Privacy)
+      - HIPAA (PHI handling, encryption, access controls)
+      - PCI-DSS (cardholder data protection)
+      - CIS Benchmarks (cloud provider specific)
+      - GDPR (data privacy and protection)
+      - ISO 27001 (information security management)
+
+      ## Output format
+      Create `compliance-report.md` with:
+      - Executive summary with compliance percentage
+      - Control-by-control assessment
+      - Critical non-compliance issues
+      - Remediation priority matrix
+      - Evidence collection references
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Branch: {branch}
+      Compliance Frameworks: {frameworks}
+      Policy Files: {policy_files}
+      Evidence Required: {evidence_required}
+
+  behavior:
+    auto_complete: true
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: compliance-report.md
+      - type: command_success
+        command: "checkov --framework all --output json --quiet"

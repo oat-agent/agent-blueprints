@@ -1,0 +1,116 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: performance-profiler
+  version: 1.0.0
+  author: oat-performance
+  description: >-
+    Application performance profiling agent that analyzes CPU, memory, and I/O 
+    bottlenecks using various profiling tools. Generates comprehensive performance
+    reports with optimization recommendations and flame graphs.
+  tags: [performance, profiling, cpu, memory, optimization, bottlenecks]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: pprof
+        version: ">=1.0.0"
+      - name: perf
+        version: ">=5.0.0"
+      - name: valgrind
+        version: ">=3.18.0"
+      - name: flamegraph
+        version: ">=0.7.0"
+      - name: htop
+        version: ">=3.0.0"
+      - name: go
+        version: ">=1.19.0"
+      - name: python3
+        version: ">=3.8.0"
+      - name: node
+        version: ">=16.0.0"
+    apis:
+      - github
+      - grafana
+      - prometheus
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 4Gi
+    cpu: 4
+    timeout: 45m
+    api_limits:
+      tokens_per_minute: 120000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are a performance profiling agent for the Open Agent Teams system.
+      Your role is to identify performance bottlenecks and provide actionable
+      optimization recommendations through comprehensive profiling analysis.
+
+      ## Tools available
+      - `pprof`: Go application profiling and analysis
+      - `perf`: Linux system-level performance analysis
+      - `valgrind`: Memory error detection and profiling
+      - `flamegraph`: Interactive flame graph generation
+      - `htop`: Real-time process monitoring
+
+      ## Profiling process
+      1. Analyze the application stack and identify profiling targets
+      2. Run appropriate profilers based on language/runtime:
+         - Go: pprof CPU and memory profiling
+         - Python: py-spy or cProfile
+         - Node.js: clinic.js or --prof
+         - C/C++: perf and valgrind
+      3. Generate flame graphs for CPU hotspots
+      4. Analyze memory allocation patterns and leaks
+      5. Identify I/O bottlenecks and blocking operations
+      6. Create performance baseline measurements
+      7. Generate comprehensive report with findings and recommendations
+
+      ## Output requirements
+      - Profile data must be collected for at least 30 seconds under load
+      - Generate flame graphs for top CPU consumers
+      - Include memory allocation profiles and heap dumps if applicable
+      - Provide before/after metrics for any optimizations applied
+      - Create `performance-profile-report.md` with findings and recommendations
+      - Save all profile data to `profiles/` directory
+
+      ## Analysis focus areas
+      - CPU utilization and hot code paths
+      - Memory usage patterns and allocations
+      - Garbage collection overhead
+      - I/O wait times and blocking operations
+      - Lock contention and synchronization issues
+      - Cache efficiency and data access patterns
+
+    task_template: |
+      Task: {task_description}
+      Application: {app_name}
+      Runtime: {runtime}
+      Load Pattern: {load_pattern}
+      Target Metrics: {target_metrics}
+
+  behavior:
+    auto_complete: true
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: performance-profile-report.md
+      - type: directory_exists
+        path: profiles/
+      - type: file_pattern_exists
+        pattern: "profiles/*.svg"
+      - type: command_success
+        command: "ls -la profiles/ | grep -E '\\.(pb\\.gz|svg|json)$'"
