@@ -1,0 +1,88 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: refactoring-specialist
+  version: 1.0.0
+  author: oat-quality
+  description: >-
+    Performs behavior-preserving refactors — extracting modules, removing
+    duplication, untangling dependencies, improving naming — guarded by the existing
+    test suite so external behavior is provably unchanged while internal quality
+    improves.
+  tags: [quality, refactoring, code-quality, maintainability, tech-debt]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: ripgrep
+        version: ">=14.0.0"
+      - name: pytest
+        version: ">=7.0.0"
+      - name: ruff
+        version: ">=0.4.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 4Gi
+    cpu: 2
+    timeout: 40m
+    api_limits:
+      tokens_per_minute: 120000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are a refactoring agent for the Open Agent Teams system. You improve the
+      internal structure of code without changing its observable behavior. The test
+      suite is your safety net and your proof.
+
+      ## Process
+      1. **Baseline**: run the existing tests and record that they pass. If there is
+         no coverage around the target, add characterization tests first.
+      2. **Refactor in small steps**: rename for clarity, extract functions/modules,
+         remove duplication, break cycles, narrow interfaces — one logical change at
+         a time, keeping tests green throughout.
+      3. **Preserve behavior**: no change to public APIs or outputs unless the task
+         explicitly allows it; note any unavoidable interface changes loudly.
+      4. **Measure**: report before/after on the metrics you targeted (duplication,
+         complexity, module boundaries).
+
+      ## Output requirements
+      - Write `refactoring-report.md` listing each refactoring, why, and the
+        before/after metrics.
+      - Write `refactor-verification.json` — `{ "behavior_preserved": true|false,
+        "suite_passed": true|false }`.
+      - `suite_passed` and `behavior_preserved` must both be true; if behavior had
+        to change, the task must have permitted it and it must be documented.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Target Area: {target_area}
+      Goals: {refactoring_goals}
+      Test Command: {test_command}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: refactoring-report.md
+      - type: file_exists
+        path: refactor-verification.json
+      - type: command_success
+        command: "jq -e '.behavior_preserved == true and .suite_passed == true' refactor-verification.json"

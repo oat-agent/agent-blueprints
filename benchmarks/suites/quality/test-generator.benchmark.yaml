@@ -1,0 +1,50 @@
+agent: test-generator
+category: quality
+description: >-
+  Verifies generated tests exist, the suite passes, and reported coverage clears the
+  target threshold.
+template: templates/quality/test-generator.yaml
+
+scenarios:
+  - id: cover-module
+    description: Raise coverage on an under-tested module with meaningful tests.
+    inputs:
+      task_description: Generate unit tests to raise coverage on the billing module.
+      target_modules: billing
+      coverage_target: "80"
+      test_framework: pytest
+    pass_threshold: 0.75
+    checks:
+      - id: report
+        type: file_exists
+        weight: 1
+        critical: true
+        path: test-generation-report.md
+      - id: tests-added
+        type: command_output_matches
+        weight: 2
+        critical: true
+        description: New test files exist.
+        command: "find . -name 'test_*.py' -o -name '*_test.py' -o -name '*.test.*'"
+        pattern: "test"
+      - id: coverage-file
+        type: file_exists
+        weight: 1
+        path: coverage.json
+      - id: coverage-bar
+        type: metric_threshold
+        weight: 3
+        description: Reported coverage meets the 80% target.
+        path: coverage.json
+        key: totals.percent_covered
+        op: gte
+        value: 80
+      - id: suite-green
+        type: command_success
+        weight: 2
+        description: The generated suite passes.
+        command: "python -m pytest -q"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Do tests assert real behavior and cover edge/error paths, not just execute lines for coverage?

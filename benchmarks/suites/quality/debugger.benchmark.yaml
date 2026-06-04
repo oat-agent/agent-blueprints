@@ -1,0 +1,47 @@
+agent: debugger
+category: quality
+description: >-
+  Verifies the debugger states a root cause, adds a regression test, and proves the
+  fix by leaving the suite green.
+template: templates/quality/debugger.yaml
+
+scenarios:
+  - id: off-by-one
+    description: Diagnose and fix a reported defect with a regression test.
+    inputs:
+      task_description: Find and fix the reported pagination bug.
+      bug_report: Last page returns one too few items.
+      test_command: "pytest -q"
+    pass_threshold: 0.75
+    checks:
+      - id: rca
+        type: file_exists
+        weight: 2
+        critical: true
+        path: root-cause-analysis.md
+      - id: states-root-cause
+        type: file_contains
+        weight: 2
+        description: Explicitly states the root cause, not just symptoms.
+        path: root-cause-analysis.md
+        pattern: "(?i)root cause"
+      - id: verification-file
+        type: file_exists
+        weight: 1
+        critical: true
+        path: fix-verification.json
+      - id: regression-test-recorded
+        type: command_success
+        weight: 2
+        description: A regression test path is recorded.
+        command: "jq -e '.regression_test | length > 0' fix-verification.json"
+      - id: suite-passes
+        type: command_success
+        weight: 3
+        critical: true
+        description: The reported suite is green after the fix.
+        command: "jq -e '.suite_passed == true' fix-verification.json"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Is the fix minimal and addressing the true cause (not masking the symptom)?

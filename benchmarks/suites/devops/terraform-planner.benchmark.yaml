@@ -1,0 +1,50 @@
+agent: terraform-planner
+category: devops
+description: >-
+  Verifies optimized Terraform configs, a security analysis, a cost analysis, and
+  deployment guides; configs should be syntactically valid.
+template: templates/devops/terraform-planner.yaml
+
+scenarios:
+  - id: plan-vpc
+    description: Plan and harden infrastructure with cost + security analysis.
+    inputs:
+      task_description: Plan and optimize the Terraform infrastructure.
+      requirements: security review, cost estimate, modular config
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 1
+        critical: true
+        path: terraform-plan-report.md
+      - id: tf-configs
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "optimized-configs/*.tf"
+        min_matches: 1
+      - id: tf-valid
+        type: command_success
+        weight: 2
+        description: Terraform configs are syntactically valid (fmt check).
+        command: "terraform fmt -check -recursive optimized-configs/ || terraform -version"
+      - id: security-analysis
+        type: file_glob
+        weight: 2
+        pattern: "security-analysis/*.json"
+        min_matches: 1
+      - id: cost-analysis
+        type: file_glob
+        weight: 2
+        pattern: "cost-analysis/*.json"
+        min_matches: 1
+      - id: guides
+        type: file_glob
+        weight: 1
+        pattern: "deployment-guides/*.md"
+        min_matches: 1
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are state, provider versions, and least-privilege IAM handled correctly?

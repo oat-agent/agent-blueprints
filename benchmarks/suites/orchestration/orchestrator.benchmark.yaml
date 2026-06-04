@@ -1,0 +1,70 @@
+agent: orchestrator
+category: orchestration
+description: >-
+  Verifies the orchestrator decomposes an objective into a valid, acyclic task graph
+  with every task assigned to a real agent template and all dependencies resolvable.
+template: templates/orchestration/orchestrator.yaml
+
+scenarios:
+  - id: feature-decomposition
+    description: Decompose "add OAuth login" into a dispatchable, dependency-ordered plan.
+    inputs:
+      task_description: Plan and coordinate delivery of OAuth login end to end.
+      objective: Add Google OAuth login with tests and docs.
+      available_agents: api-builder, auth-implementer, code-reviewer, test-generator, readme-generator
+    pass_threshold: 0.8
+    checks:
+      - id: team-plan
+        type: file_exists
+        weight: 1
+        critical: true
+        path: team-plan.md
+      - id: task-graph
+        type: file_exists
+        weight: 1
+        critical: true
+        path: task-graph.json
+      - id: assignments
+        type: file_exists
+        weight: 1
+        path: assignments.json
+      - id: graph-valid-json
+        type: json_valid
+        weight: 1
+        critical: true
+        path: task-graph.json
+      - id: has-tasks
+        type: command_success
+        weight: 2
+        description: The graph contains tasks, each with id + agent + depends_on.
+        command: "jq -e '.tasks | length > 0 and all(.[]; has(\"id\") and has(\"agent\") and has(\"depends_on\"))' task-graph.json"
+      - id: deps-resolvable
+        type: command_success
+        weight: 2
+        critical: true
+        description: Every depends_on references an existing task id.
+        command: "jq -e '[.tasks[].id] as $ids | all(.tasks[]; all(.depends_on[]; . as $d | $ids | index($d) != null))' task-graph.json"
+      - id: acyclic
+        type: command_success
+        weight: 3
+        critical: true
+        description: The dependency graph is acyclic (Kahn's algorithm drains it).
+        command: |
+          python3 - <<'PY'
+          import json, sys
+          g = json.load(open('task-graph.json'))['tasks']
+          d = {t['id']: set(t.get('depends_on', [])) for t in g}
+          changed = True
+          while changed:
+              free = [n for n, deps in d.items() if not deps]
+              changed = bool(free)
+              for n in free:
+                  del d[n]
+              for deps in d.values():
+                  deps.difference_update(free)
+          sys.exit(1 if d else 0)
+          PY
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are tasks well-scoped, assigned to the most appropriate specialist, and is the wave ordering sensible?

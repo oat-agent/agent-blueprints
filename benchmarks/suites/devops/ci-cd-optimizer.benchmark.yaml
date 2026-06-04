@@ -1,0 +1,50 @@
+agent: ci-cd-optimizer
+category: devops
+description: >-
+  Verifies the optimizer ships a report, concrete optimized pipeline configs,
+  before/after performance metrics, and a cost analysis.
+template: templates/devops/ci-cd-optimizer.yaml
+
+scenarios:
+  - id: speed-up-pipeline
+    description: Optimize a slow CI pipeline (caching, parallelism, fewer redundant steps).
+    inputs:
+      task_description: Optimize the CI/CD pipeline for speed and cost.
+      requirements: caching, parallelization, measured before/after
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: pipeline-optimization-report.md
+      - id: optimized-configs
+        type: dir_exists
+        weight: 1
+        critical: true
+        path: optimized-configs/
+      - id: config-files
+        type: file_glob
+        weight: 1
+        pattern: "optimized-configs/*.yml"
+        min_matches: 1
+      - id: metrics
+        type: file_glob
+        weight: 2
+        description: Performance metrics with before/after numbers.
+        pattern: "performance-metrics/*.json"
+        min_matches: 1
+      - id: improvement-quantified
+        type: file_contains
+        weight: 2
+        description: Report quantifies the improvement.
+        path: pipeline-optimization-report.md
+        pattern: "(?i)(before|after|%|reduc|faster|minutes|seconds)"
+      - id: cost-analysis
+        type: dir_exists
+        weight: 1
+        path: cost-analysis/
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are the optimizations correct (no broken caching keys) and the measured gains credible?

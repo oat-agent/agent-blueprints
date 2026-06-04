@@ -1,0 +1,47 @@
+agent: bug-triager
+category: product
+description: >-
+  Verifies triage output assigns valid severity/priority from fixed scales, routes
+  each issue, and produces a human-readable report.
+template: templates/product/bug-triager.yaml
+
+scenarios:
+  - id: triage-batch
+    description: Triage a batch of incoming issues.
+    inputs:
+      task_description: Triage the open issues and route them.
+      issues: "crash on login; typo in footer; data loss on export"
+      components: auth, ui, data
+    pass_threshold: 0.8
+    checks:
+      - id: report
+        type: file_exists
+        weight: 1
+        critical: true
+        path: triage-report.md
+      - id: triage-json
+        type: file_exists
+        weight: 1
+        critical: true
+        path: triage.json
+      - id: valid-scales
+        type: command_success
+        weight: 3
+        critical: true
+        description: Every issue has a valid severity and priority.
+        command: "jq -e 'length > 0 and all(.[]; (.severity | IN(\"critical\",\"high\",\"medium\",\"low\")) and (.priority | IN(\"p0\",\"p1\",\"p2\",\"p3\")))' triage.json"
+      - id: routed
+        type: command_success
+        weight: 2
+        description: Every issue is routed to a component/owner/agent.
+        command: "jq -e 'all(.[]; has(\"route_to\"))' triage.json"
+      - id: severity-sanity
+        type: command_output_matches
+        weight: 2
+        description: The data-loss issue is not triaged as low severity.
+        command: "jq -r '.[] | select(.issue | test(\"data loss\";\"i\")) | .severity' triage.json"
+        pattern: "(?i)(critical|high)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are severity/priority calls reasonable and duplicates correctly identified?

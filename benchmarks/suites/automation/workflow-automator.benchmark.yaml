@@ -1,0 +1,54 @@
+agent: workflow-automator
+category: automation
+description: >-
+  Verifies business-process automation ships workflows, operators, configs, tests,
+  docs, and monitoring per the template contract.
+template: templates/automation/workflow-automator.yaml
+
+scenarios:
+  - id: onboarding-workflow
+    description: Automate a multi-step onboarding workflow with retries.
+    inputs:
+      task_description: Automate the customer onboarding workflow.
+      requirements: idempotent steps, retries, observability
+    pass_threshold: 0.7
+    checks:
+      - id: workflows
+        type: dir_exists
+        weight: 2
+        critical: true
+        path: workflows/
+      - id: workflow-files
+        type: command_output_matches
+        weight: 1
+        description: Workflow definitions exist.
+        command: "find workflows -name '*.py' -o -name '*.yml' -o -name '*.yaml'"
+        pattern: "\\.(py|ya?ml)$"
+      - id: configs
+        type: dir_exists
+        weight: 1
+        path: configs/
+      - id: tests
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "tests/**/*.py"
+        min_matches: 1
+      - id: docs
+        type: file_exists
+        weight: 1
+        path: docs/README.md
+      - id: monitoring
+        type: dir_exists
+        weight: 1
+        path: monitoring/
+      - id: resilience
+        type: command_output_matches
+        weight: 1
+        description: Steps are retryable/idempotent.
+        command: "find workflows -type f | head -20 | xargs cat 2>/dev/null"
+        pattern: "(?i)(retry|idempoten|backoff|timeout|catch)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are steps idempotent and is failure handling explicit at each stage?

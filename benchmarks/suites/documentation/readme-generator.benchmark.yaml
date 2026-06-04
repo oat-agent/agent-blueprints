@@ -1,0 +1,48 @@
+agent: readme-generator
+category: documentation
+description: >-
+  Verifies a README that lints clean, documents install/usage with real commands,
+  and records the sources each section was derived from (no fabricated features).
+template: templates/documentation/readme-generator.yaml
+
+scenarios:
+  - id: node-project
+    description: Generate a README for a Node project from its package.json + scripts.
+    inputs:
+      task_description: Generate a complete README for this repository.
+      audience: developers
+      sections: install, usage, development, contributing
+    pass_threshold: 0.7
+    checks:
+      - id: readme
+        type: file_exists
+        weight: 2
+        critical: true
+        path: README.md
+      - id: sources
+        type: file_exists
+        weight: 2
+        critical: true
+        description: Auditable record of where each section came from.
+        path: docs/README_SOURCES.md
+      - id: has-install
+        type: file_contains
+        weight: 2
+        description: Installation section present.
+        path: README.md
+        pattern: "(?i)##\\s*(install|getting started|quick start)"
+      - id: has-usage
+        type: file_contains
+        weight: 1
+        description: Usage section present.
+        path: README.md
+        pattern: "(?i)##\\s*(usage|quick start|development)"
+      - id: lints-clean
+        type: command_success
+        weight: 1
+        description: README passes markdownlint.
+        command: "markdownlint README.md"
+      - id: quality
+        type: llm_rubric
+        weight: 2
+        criteria: Are all documented commands real (present in package.json/Makefile) with no invented features or badges?

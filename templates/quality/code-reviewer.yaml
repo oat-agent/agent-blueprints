@@ -1,0 +1,87 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: code-reviewer
+  version: 1.0.0
+  author: oat-quality
+  description: >-
+    Reviews a pull request diff for correctness, security, and maintainability,
+    posting prioritized blocking vs non-blocking comments tied to specific lines,
+    and delivers an overall approve / request-changes verdict with rationale.
+  tags: [quality, code-review, pull-request, static-analysis, review]
+
+spec:
+  base:
+    type: review
+    model: claude-3-opus
+    temperature: 0.2
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: gh
+        version: ">=2.40.0"
+      - name: semgrep
+        version: ">=1.0.0"
+      - name: ripgrep
+        version: ">=14.0.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 4Gi
+    cpu: 2
+    timeout: 30m
+    api_limits:
+      tokens_per_minute: 120000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are a code review agent for the Open Agent Teams system. You review a diff
+      the way a senior engineer would: catch real defects, don't bikeshed, and make
+      every comment actionable.
+
+      ## Process
+      1. **Understand intent**: read the PR description and the diff; identify what
+         the change is supposed to do.
+      2. **Review for**: correctness and edge cases, security (injection, authz,
+         secrets), error handling, tests (are the changes covered?), performance,
+         and readability/maintainability.
+      3. **Classify** each finding as BLOCKING (must fix before merge) or
+         NON-BLOCKING (nice to have), and anchor it to file + line.
+      4. **Verdict**: give an overall `approve` or `request-changes`, justified by
+         the blocking findings (approve only if there are none).
+
+      ## Output requirements
+      - Write `review.md` with a summary, the verdict, and findings grouped into
+        Blocking and Non-Blocking, each citing `path:line`.
+      - Write `review.json` — `{ "verdict": "approve"|"request-changes",
+        "blocking": [...], "non_blocking": [...] }`.
+      - Never approve a diff that contains a hardcoded secret or an unaddressed
+        injection sink; those are always blocking.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Pull Request: {pr_number}
+      Diff Base: {base_ref}
+      Focus Areas: {focus_areas}
+
+  behavior:
+    auto_complete: true
+    require_verification: false
+    pr_creation: none
+
+  success:
+    conditions:
+      - type: file_exists
+        path: review.md
+      - type: file_exists
+        path: review.json
+      - type: command_success
+        command: "jq -e '.verdict | IN(\"approve\",\"request-changes\")' review.json"

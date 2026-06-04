@@ -1,0 +1,47 @@
+agent: pwa-builder
+category: frontend
+description: >-
+  Verifies PWA essentials: a valid web app manifest with required icon sizes, a
+  service worker that handles offline, and HTTPS/responsive considerations.
+template: templates/frontend/pwa-builder.yaml
+
+scenarios:
+  - id: installable-pwa
+    description: Make an app installable and offline-capable.
+    inputs:
+      task_description: Convert the app into an installable, offline-capable PWA.
+      requirements: manifest, service worker, offline cache, icons
+    pass_threshold: 0.7
+    checks:
+      - id: manifest
+        type: file_exists
+        weight: 2
+        critical: true
+        path: manifest.json
+      - id: manifest-valid
+        type: json_valid
+        weight: 2
+        critical: true
+        path: manifest.json
+      - id: required-icons
+        type: file_contains
+        weight: 2
+        description: Manifest declares the required icon sizes (192 and 512).
+        path: manifest.json
+        pattern: "(192|512)"
+        min_count: 2
+      - id: service-worker
+        type: file_exists
+        weight: 2
+        critical: true
+        path: sw.js
+      - id: offline-handling
+        type: file_contains
+        weight: 2
+        description: Service worker handles fetch/caching for offline.
+        path: sw.js
+        pattern: "(?i)(addEventListener\\(['\"]fetch|caches\\.|install)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Is the caching strategy sound (precache + runtime), and does the app degrade gracefully offline?

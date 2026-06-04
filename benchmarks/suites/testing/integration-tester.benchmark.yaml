@@ -1,0 +1,46 @@
+agent: integration-tester
+category: testing
+description: >-
+  Verifies integration tests run and emit a report, machine-readable results
+  (JUnit/JSON), and coverage output.
+template: templates/testing/integration-tester.yaml
+
+scenarios:
+  - id: service-integration
+    description: Add integration tests across the service + its dependencies.
+    inputs:
+      task_description: Write integration tests covering the service and its DB.
+      requirements: real dependencies via containers, coverage report
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: integration-test-report.md
+      - id: results-dir
+        type: dir_exists
+        weight: 1
+        path: integration-test-results/
+      - id: results-json
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "integration-test-results/*.json"
+        min_matches: 1
+      - id: junit-or-xml
+        type: command_output_matches
+        weight: 1
+        description: Machine-readable results (XML/JSON) present.
+        command: "find integration-test-results -name '*.xml' -o -name '*.json'"
+        pattern: "\\.(xml|json)$"
+      - id: coverage-artifact
+        type: command_output_matches
+        weight: 1
+        description: Coverage artifact produced.
+        command: "find integration-test-results -name '*coverage*'"
+        pattern: "coverage"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Do the tests exercise real integration seams (not mocks of everything) and assert meaningful behavior?

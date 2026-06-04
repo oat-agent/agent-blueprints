@@ -1,0 +1,50 @@
+agent: cloud-architect
+category: infrastructure
+description: >-
+  Verifies a cloud design package: architecture overview, IaC, security policies,
+  deployment guides, monitoring, cost, and DR sections.
+template: templates/infrastructure/cloud-architect.yaml
+
+scenarios:
+  - id: three-tier-aws
+    description: Design a resilient three-tier architecture on a cloud provider.
+    inputs:
+      task_description: Design the cloud architecture for a three-tier web app.
+      requirements: multi-AZ, least privilege, cost-aware, DR
+    pass_threshold: 0.7
+    checks:
+      - id: overview
+        type: file_exists
+        weight: 2
+        critical: true
+        path: architecture-design/architecture-overview.md
+      - id: iac
+        type: command_output_matches
+        weight: 2
+        critical: true
+        description: Infrastructure-as-code present.
+        command: "find infrastructure-code -name '*.tf' -o -name '*.yaml' -o -name '*.json'"
+        pattern: "\\.(tf|yaml|json)$"
+      - id: security-policies
+        type: dir_exists
+        weight: 1
+        path: security-policies/
+      - id: deployment-guides
+        type: file_glob
+        weight: 1
+        pattern: "deployment-guides/*.md"
+        min_matches: 1
+      - id: monitoring
+        type: dir_exists
+        weight: 1
+        path: monitoring-configs/
+      - id: dr-and-cost
+        type: file_contains
+        weight: 1
+        description: Overview addresses resilience + cost trade-offs.
+        path: architecture-design/architecture-overview.md
+        pattern: "(?i)(multi-az|availability|disaster|cost|sla|rto|rpo)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Is the design well-architected (reliability, security, cost, performance) with justified trade-offs?

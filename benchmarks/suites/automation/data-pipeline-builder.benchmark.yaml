@@ -1,0 +1,52 @@
+agent: data-pipeline-builder
+category: automation
+description: >-
+  Verifies an ETL/ELT pipeline ships pipelines, transforms, configs, tests, docs,
+  and monitoring per the template contract.
+template: templates/automation/data-pipeline-builder.yaml
+
+scenarios:
+  - id: events-elt
+    description: Build an ELT pipeline from raw events to curated tables.
+    inputs:
+      task_description: Build an ELT pipeline for product events.
+      requirements: idempotent loads, data tests, monitoring
+    pass_threshold: 0.7
+    checks:
+      - id: pipelines
+        type: dir_exists
+        weight: 2
+        critical: true
+        path: pipelines/
+      - id: pipeline-files
+        type: file_glob
+        weight: 1
+        pattern: "pipelines/**/*.py"
+        min_matches: 1
+      - id: transforms
+        type: dir_exists
+        weight: 1
+        path: transforms/
+      - id: configs
+        type: dir_exists
+        weight: 1
+        path: configs/
+      - id: tests
+        type: file_glob
+        weight: 2
+        critical: true
+        description: Pipeline tests exist.
+        pattern: "tests/**/*.py"
+        min_matches: 1
+      - id: docs
+        type: file_exists
+        weight: 1
+        path: docs/README.md
+      - id: monitoring
+        type: dir_exists
+        weight: 1
+        path: monitoring/
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are loads idempotent/incremental with data quality tests and failure alerting?

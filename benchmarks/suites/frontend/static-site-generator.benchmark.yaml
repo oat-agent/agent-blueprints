@@ -1,0 +1,49 @@
+agent: static-site-generator
+category: frontend
+description: >-
+  Verifies a static site project that builds, includes SEO essentials (sitemap,
+  robots), and is configured for performance.
+template: templates/frontend/static-site-generator.yaml
+
+scenarios:
+  - id: marketing-site
+    description: Generate a fast, SEO-ready static site.
+    inputs:
+      task_description: Build a static marketing site.
+      requirements: SEO, sitemap, performance budget
+    pass_threshold: 0.7
+    checks:
+      - id: package-json
+        type: file_exists
+        weight: 1
+        critical: true
+        path: package.json
+      - id: config
+        type: file_exists
+        weight: 1
+        path: next.config.js
+      - id: build-script
+        type: file_contains
+        weight: 2
+        critical: true
+        description: Defines a build script (template build_success condition).
+        path: package.json
+        pattern: "\"build\":"
+      - id: sitemap
+        type: file_exists
+        weight: 2
+        path: sitemap.xml
+      - id: robots
+        type: file_exists
+        weight: 2
+        path: robots.txt
+      - id: seo-meta
+        type: command_output_matches
+        weight: 1
+        description: Pages include SEO meta/title.
+        command: "find . -name '*.html' -o -name '*.jsx' -o -name '*.tsx' | head -20 | xargs cat 2>/dev/null"
+        pattern: "(?i)(<title|meta name=\\\"description|og:)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are images optimized, fonts preloaded, and is the site likely to clear Core Web Vitals?

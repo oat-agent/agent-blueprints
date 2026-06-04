@@ -1,0 +1,46 @@
+agent: task-router
+category: orchestration
+description: >-
+  Verifies routing decisions are complete and well-typed: every task gets a model,
+  an agent, a valid complexity label, and a non-empty rationale.
+template: templates/orchestration/task-router.yaml
+
+scenarios:
+  - id: route-mixed-queue
+    description: Route a mixed queue of trivial and complex tasks cost-effectively.
+    inputs:
+      task_description: Route the pending task queue to models and agents.
+      task_queue: "fix typo in README; refactor auth module; add caching layer"
+      available_models: claude-3-haiku, claude-3-sonnet, claude-3-opus
+    pass_threshold: 0.8
+    checks:
+      - id: decisions
+        type: file_exists
+        weight: 1
+        critical: true
+        path: routing-decisions.json
+      - id: report
+        type: file_exists
+        weight: 1
+        path: routing-report.md
+      - id: decisions-valid
+        type: json_valid
+        weight: 1
+        critical: true
+        path: routing-decisions.json
+      - id: well-typed
+        type: command_success
+        weight: 3
+        critical: true
+        description: Each decision has model, agent, valid complexity, and rationale.
+        command: "jq -e 'length > 0 and all(.[]; has(\"model\") and has(\"agent\") and (.complexity | IN(\"simple\",\"standard\",\"complex\")) and (.rationale | length > 0))' routing-decisions.json"
+      - id: cost-awareness
+        type: command_output_matches
+        weight: 2
+        description: Trivial tasks are not routed to the most expensive model.
+        command: "jq -r '.[] | select(.complexity==\"simple\") | .model' routing-decisions.json"
+        pattern: "(?i)(haiku|sonnet|mini|flash|small)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Do the model picks match task complexity, minimizing cost while meeting the quality floor?

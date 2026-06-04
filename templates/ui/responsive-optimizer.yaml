@@ -58,7 +58,7 @@ spec:
         version: ">=10.4.0"
       - name: cssnano
         version: ">=6.0.0"
-      - name: responsive-loader"
+      - name: responsive-loader
         version: ">=3.0.0"
       - name: sharp
         version: ">=0.32.0"

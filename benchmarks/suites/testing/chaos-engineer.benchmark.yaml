@@ -1,0 +1,47 @@
+agent: chaos-engineer
+category: testing
+description: >-
+  Verifies chaos experiments are defined with a hypothesis, executed with metrics
+  and a dashboard, and summarized — including blast-radius/abort controls.
+template: templates/testing/chaos-engineer.yaml
+
+scenarios:
+  - id: pod-failure
+    description: Run a controlled fault-injection experiment with a steady-state hypothesis.
+    inputs:
+      task_description: Design and run a chaos experiment for pod failures.
+      requirements: steady-state hypothesis, blast radius limit, automatic abort
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: chaos-engineering-report.md
+      - id: experiments
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "chaos-experiments/*.json"
+        min_matches: 1
+      - id: metrics
+        type: command_output_matches
+        weight: 1
+        description: Experiment metrics captured.
+        command: "find chaos-experiments -name '*-metrics.*'"
+        pattern: "metrics"
+      - id: summary
+        type: file_exists
+        weight: 1
+        path: chaos-experiments/experiment-summary.md
+      - id: safety-controls
+        type: file_contains
+        weight: 2
+        critical: true
+        description: Blast radius limit + abort/rollback condition are defined.
+        path: chaos-engineering-report.md
+        pattern: "(?i)(blast radius|abort|rollback|steady.state|halt|safety)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Is there a clear hypothesis, controlled blast radius, and learnings that improve resilience?

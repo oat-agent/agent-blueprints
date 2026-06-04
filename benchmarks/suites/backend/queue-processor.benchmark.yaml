@@ -1,0 +1,48 @@
+agent: queue-processor
+category: backend
+description: >-
+  Verifies the message-queue design ships producers, consumers, validated message
+  schemas, and addresses delivery guarantees + idempotency.
+template: templates/backend/queue-processor.yaml
+
+scenarios:
+  - id: order-events
+    description: Build an async order-events pipeline with at-least-once delivery.
+    inputs:
+      task_description: Implement a queue-based processor for order events.
+      requirements: at-least-once delivery, idempotent consumers, DLQ
+    pass_threshold: 0.7
+    checks:
+      - id: arch-doc
+        type: file_exists
+        weight: 2
+        critical: true
+        path: queue-architecture.md
+      - id: schemas
+        type: file_exists
+        weight: 2
+        critical: true
+        path: message-schemas.yaml
+      - id: schemas-valid
+        type: yaml_valid
+        weight: 2
+        critical: true
+        path: message-schemas.yaml
+      - id: producers
+        type: dir_exists
+        weight: 1
+        path: producers/
+      - id: consumers
+        type: dir_exists
+        weight: 1
+        path: consumers/
+      - id: delivery-semantics
+        type: file_contains
+        weight: 2
+        description: Delivery guarantees + idempotency are specified.
+        path: queue-architecture.md
+        pattern: "(?i)(at-least-once|at-most-once|exactly-once|idempoten|dead.letter|dlq)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are backpressure, retries, ordering, and poison-message handling addressed?

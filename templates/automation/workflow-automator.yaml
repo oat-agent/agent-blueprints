@@ -241,7 +241,7 @@ spec:
   behavior:
     auto_complete: true
     require_verification: true
-    pr_creation: recommended
+    pr_creation: optional
 
   success:
     conditions:

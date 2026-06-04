@@ -1,0 +1,47 @@
+agent: changelog-maintainer
+category: documentation
+description: >-
+  Verifies a Keep a Changelog / SemVer-compliant CHANGELOG update with grouped
+  entries, release notes, a proposed version bump, and preserved prior history.
+template: templates/documentation/changelog-maintainer.yaml
+
+scenarios:
+  - id: unreleased-section
+    description: Summarize changes since the last tag into an Unreleased section.
+    inputs:
+      task_description: Update the changelog for changes since the last release.
+      since_ref: v1.2.0
+      target_version: unreleased
+    pass_threshold: 0.7
+    checks:
+      - id: changelog
+        type: file_exists
+        weight: 2
+        critical: true
+        path: CHANGELOG.md
+      - id: release-notes
+        type: file_exists
+        weight: 2
+        critical: true
+        path: release-notes.md
+      - id: keepachangelog-groups
+        type: file_contains
+        weight: 2
+        description: Uses Keep a Changelog headings.
+        path: CHANGELOG.md
+        pattern: "(?i)###?\\s*(Added|Changed|Fixed|Removed|Deprecated|Security)"
+        min_count: 1
+      - id: version-bump
+        type: file_contains
+        weight: 2
+        description: Proposes a version bump type.
+        path: release-notes.md
+        pattern: "(?i)(major|minor|patch|\\d+\\.\\d+\\.\\d+)"
+      - id: lints-clean
+        type: command_success
+        weight: 1
+        command: "markdownlint CHANGELOG.md"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are entries grouped correctly, linked to PRs, and is the SemVer bump justified by the changes?

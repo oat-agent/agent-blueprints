@@ -1,0 +1,49 @@
+agent: accessibility-auditor
+category: ui
+description: >-
+  Verifies a WCAG audit with machine-readable compliance results, a prioritized
+  remediation plan, and screen-reader coverage.
+template: templates/ui/accessibility-auditor.yaml
+
+scenarios:
+  - id: wcag-audit
+    description: Audit an app for WCAG 2.1 AA conformance and plan fixes.
+    inputs:
+      task_description: Audit the application for accessibility issues.
+      requirements: WCAG 2.1 AA, screen reader testing, remediation roadmap
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: accessibility-audit-report.md
+      - id: wcag-results
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "wcag-compliance/*.json"
+        min_matches: 1
+      - id: test-results
+        type: file_glob
+        weight: 1
+        pattern: "accessibility-test-results/*.json"
+        min_matches: 1
+      - id: critical-issues
+        type: file_exists
+        weight: 2
+        path: remediation-plan/critical-issues.md
+      - id: roadmap
+        type: file_exists
+        weight: 1
+        path: remediation-plan/implementation-roadmap.md
+      - id: wcag-referenced
+        type: file_contains
+        weight: 1
+        description: References WCAG success criteria.
+        path: accessibility-audit-report.md
+        pattern: "(?i)(wcag|aa|contrast|aria|1\\.\\d\\.\\d)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are issues mapped to specific WCAG criteria with correct severity and actionable fixes?

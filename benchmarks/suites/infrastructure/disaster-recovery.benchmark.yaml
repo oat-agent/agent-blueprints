@@ -1,0 +1,51 @@
+agent: disaster-recovery
+category: infrastructure
+description: >-
+  Verifies a DR plan with an RTO/RPO matrix, backup configs, recovery procedures,
+  a testing framework, and business-continuity docs.
+template: templates/infrastructure/disaster-recovery.yaml
+
+scenarios:
+  - id: region-failover
+    description: Plan recovery for a region-level outage with defined RTO/RPO.
+    inputs:
+      task_description: Create a disaster recovery plan for a regional outage.
+      requirements: RTO/RPO targets, tested runbooks, automated backups
+    pass_threshold: 0.7
+    checks:
+      - id: dr-plan
+        type: file_exists
+        weight: 2
+        critical: true
+        path: dr-strategy/disaster-recovery-plan.md
+      - id: rto-rpo-matrix
+        type: file_exists
+        weight: 3
+        critical: true
+        description: RTO/RPO matrix is the core of any DR plan.
+        path: dr-strategy/rto-rpo-matrix.md
+      - id: backup-configs
+        type: command_output_matches
+        weight: 1
+        description: Backup configs present.
+        command: "find backup-configs -type f"
+        pattern: "\\.(ya?ml|json|sh)$"
+      - id: recovery-procedures
+        type: file_glob
+        weight: 1
+        pattern: "recovery-procedures/*.md"
+        min_matches: 1
+      - id: testing-framework
+        type: dir_exists
+        weight: 1
+        path: testing-framework/
+      - id: rto-rpo-values
+        type: file_contains
+        weight: 1
+        description: The matrix contains actual RTO/RPO targets.
+        path: dr-strategy/rto-rpo-matrix.md
+        pattern: "(?i)(rto|rpo).{0,40}(min|hour|sec|h|m)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are RTO/RPO targets realistic given the backup strategy, and are runbooks actually testable?

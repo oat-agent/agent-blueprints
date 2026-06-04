@@ -1,0 +1,48 @@
+agent: benchmark-runner
+category: performance
+description: >-
+  Verifies repeatable benchmarks producing a report (with a Performance Summary),
+  machine-readable results, and charts.
+template: templates/performance/benchmark-runner.yaml
+
+scenarios:
+  - id: microbench
+    description: Benchmark two implementations and summarize the comparison.
+    inputs:
+      task_description: Benchmark the candidate implementations and compare.
+      requirements: warmup, multiple runs, variance, summary
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: benchmark-report.md
+      - id: performance-summary
+        type: file_contains
+        weight: 2
+        critical: true
+        description: Report contains the required Performance Summary section.
+        path: benchmark-report.md
+        pattern: "Performance Summary"
+      - id: results-json
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "benchmarks/*.json"
+        min_matches: 1
+      - id: charts
+        type: file_glob
+        weight: 1
+        pattern: "benchmarks/*.png"
+        min_matches: 1
+      - id: variance-reported
+        type: file_contains
+        weight: 1
+        description: Reports variance / runs for statistical validity.
+        path: benchmark-report.md
+        pattern: "(?i)(stddev|std dev|variance|runs|iterations|confidence)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are results reproducible with warmup and enough runs to make the comparison meaningful?

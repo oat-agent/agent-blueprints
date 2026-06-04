@@ -1,0 +1,47 @@
+agent: context-manager
+category: orchestration
+description: >-
+  Verifies the context manager builds a non-empty retrieval index, a system map, and
+  a decisions log, with index entries carrying path + summary.
+template: templates/orchestration/context-manager.yaml
+
+scenarios:
+  - id: index-repo
+    description: Index a repository and produce a navigable context pack.
+    inputs:
+      task_description: Build the team knowledge base for this repository.
+      scope: whole repository
+    pass_threshold: 0.75
+    checks:
+      - id: kb-dir
+        type: dir_exists
+        weight: 1
+        critical: true
+        path: knowledge-base/
+      - id: index
+        type: file_exists
+        weight: 1
+        critical: true
+        path: knowledge-base/index.json
+      - id: index-valid
+        type: json_valid
+        weight: 1
+        critical: true
+        path: knowledge-base/index.json
+      - id: index-nonempty
+        type: command_success
+        weight: 2
+        description: Index has entries with path + summary.
+        command: "jq -e 'length > 0 and all(.[]; has(\"path\") and has(\"summary\"))' knowledge-base/index.json"
+      - id: context-map
+        type: file_exists
+        weight: 2
+        path: context-map.md
+      - id: decisions
+        type: file_exists
+        weight: 1
+        path: decisions.md
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are summaries accurate and is the context pack minimal-yet-sufficient (not a file dump)?

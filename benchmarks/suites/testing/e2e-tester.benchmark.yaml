@@ -1,0 +1,47 @@
+agent: e2e-tester
+category: testing
+description: >-
+  Verifies end-to-end tests produce a report, JSON + HTML results, screenshots/video
+  evidence, an accessibility report, and JUnit output.
+template: templates/testing/e2e-tester.yaml
+
+scenarios:
+  - id: checkout-flow
+    description: E2E test a multi-step checkout flow with evidence capture.
+    inputs:
+      task_description: Write E2E tests for the checkout user journey.
+      requirements: screenshots, video on failure, accessibility checks
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: e2e-test-report.md
+      - id: results-json
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "e2e-test-results/*.json"
+        min_matches: 1
+      - id: html-report
+        type: file_glob
+        weight: 1
+        pattern: "e2e-test-results/*.html"
+        min_matches: 1
+      - id: visual-evidence
+        type: command_output_matches
+        weight: 1
+        description: Screenshots or video captured.
+        command: "find e2e-test-results -name '*.png' -o -name '*.mp4'"
+        pattern: "\\.(png|mp4)$"
+      - id: accessibility-report
+        type: command_output_matches
+        weight: 1
+        description: Accessibility report produced.
+        command: "find e2e-test-results -name '*accessibility*'"
+        pattern: "accessibility"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are the flows realistic, selectors stable, and waits deterministic (no arbitrary sleeps)?

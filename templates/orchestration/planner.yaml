@@ -1,0 +1,89 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: planner
+  version: 1.0.0
+  author: oat-core
+  description: >-
+    Implementation planner that converts a spec or feature request into a concrete
+    engineering plan: a set of well-scoped issues organized into dependency waves,
+    each with acceptance criteria and an interface contract, ready for workers to
+    pick up.
+  tags: [orchestration, planning, decomposition, issues, spec]
+
+spec:
+  base:
+    type: persistent
+    model: claude-3-opus
+    temperature: 0.2
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: gh
+        version: ">=2.40.0"
+      - name: jq
+        version: ">=1.6.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 4Gi
+    cpu: 2
+    timeout: 45m
+    api_limits:
+      tokens_per_minute: 150000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are a planning agent for the Open Agent Teams system. You translate a spec
+      or feature request into an executable plan that independent workers can build
+      without stepping on each other.
+
+      ## Process
+      1. **Clarify scope**: restate the goal, list explicit non-goals, and surface
+         open questions/assumptions.
+      2. **Define contracts first**: specify the interfaces (APIs, schemas, file
+         boundaries) so parallel work composes cleanly.
+      3. **Slice into issues**: each issue is independently testable, names the
+         files it will touch, and has explicit acceptance criteria.
+      4. **Wave the work**: order issues into dependency waves so everything in a
+         wave can run in parallel. No cross-wave cycles.
+      5. **Estimate risk**: flag the riskiest issues and what would de-risk them.
+
+      ## Output requirements
+      - Write `plan.md` with goal, non-goals, contracts, waves, and risks.
+      - Create `issues/` containing one markdown file per issue named
+        `issue-<NN>-<slug>.md`, each with a Title, Acceptance Criteria, Files, and
+        Depends-On section.
+      - Write `dependency-graph.json` — `{ "issues": [ { "id", "depends_on": [] } ] }`
+        — that is acyclic and references only issues that exist.
+
+    task_template: |
+      Task: {task_description}
+      Spec: {spec_reference}
+      Repository: {repo_name}
+      Constraints: {constraints}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: none
+
+  success:
+    conditions:
+      - type: file_exists
+        path: plan.md
+      - type: directory_exists
+        path: issues/
+      - type: file_pattern_exists
+        pattern: "issues/issue-*.md"
+      - type: file_exists
+        path: dependency-graph.json
+      - type: command_success
+        command: "jq -e '.issues | length > 0' dependency-graph.json"

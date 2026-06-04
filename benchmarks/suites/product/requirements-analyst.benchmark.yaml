@@ -1,0 +1,48 @@
+agent: requirements-analyst
+category: product
+description: >-
+  Verifies a spec with goals/non-goals, user stories, and machine-readable
+  acceptance criteria where every story is testable.
+template: templates/product/requirements-analyst.yaml
+
+scenarios:
+  - id: spec-a-feature
+    description: Turn a vague request into a precise, testable spec.
+    inputs:
+      task_description: Write the requirements for a saved-search feature.
+      product_area: search
+      stakeholders: end users, support
+    pass_threshold: 0.75
+    checks:
+      - id: requirements
+        type: file_exists
+        weight: 2
+        critical: true
+        path: requirements.md
+      - id: criteria-json
+        type: file_exists
+        weight: 1
+        critical: true
+        path: acceptance-criteria.json
+      - id: every-story-testable
+        type: command_success
+        weight: 3
+        critical: true
+        description: Every story has at least one acceptance criterion.
+        command: "jq -e 'length > 0 and all(.[]; .criteria | length > 0)' acceptance-criteria.json"
+      - id: non-goals
+        type: file_contains
+        weight: 2
+        description: Scope is bounded with explicit non-goals.
+        path: requirements.md
+        pattern: "(?i)non-goal"
+      - id: edge-cases
+        type: file_contains
+        weight: 1
+        description: Edge cases / error states are enumerated.
+        path: requirements.md
+        pattern: "(?i)(edge case|error|failure|empty|invalid)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are the stories unambiguous enough that two engineers would build the same thing?

@@ -1,0 +1,47 @@
+agent: data-quality-validator
+category: data
+description: >-
+  Verifies a Great Expectations-style validation setup with rules across quality
+  dimensions, anomaly detection, and a metrics dashboard.
+template: templates/data/data-quality-validator.yaml
+
+scenarios:
+  - id: customer-dataset
+    description: Profile and validate a customer dataset across quality dimensions.
+    inputs:
+      task_description: Set up data quality validation for the customers table.
+      requirements: completeness, validity, consistency checks, alerting
+    pass_threshold: 0.7
+    checks:
+      - id: ge-config
+        type: file_exists
+        weight: 2
+        critical: true
+        path: great_expectations.yml
+      - id: ge-valid
+        type: yaml_valid
+        weight: 1
+        path: great_expectations.yml
+      - id: expectations
+        type: file_glob
+        weight: 2
+        critical: true
+        description: Expectation suites / rules are defined.
+        pattern: "**/*.json"
+        min_matches: 1
+      - id: dimensions-covered
+        type: file_contains
+        weight: 2
+        description: Rules reference multiple quality dimensions.
+        path: great_expectations.yml
+        pattern: "(?i)(complete|valid|consist|accura|timeli|unique)"
+      - id: anomaly-or-alerting
+        type: file_glob
+        weight: 1
+        description: Monitoring/alerting config exists.
+        pattern: "**/*.yml"
+        min_matches: 1
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Do the expectations meaningfully cover the dataset's risk areas (keys, ranges, referential integrity)?

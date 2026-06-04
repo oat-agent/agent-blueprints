@@ -1,0 +1,54 @@
+agent: microservice-architect
+category: backend
+description: >-
+  Verifies the architecture deliverables exist (diagram, service contracts, k8s and
+  docker assets), contracts are valid YAML, and observability is addressed.
+template: templates/backend/microservice-architect.yaml
+
+scenarios:
+  - id: decompose-monolith
+    description: Decompose a domain into services with contracts and deployment assets.
+    inputs:
+      task_description: Design a microservice architecture for the orders domain.
+      requirements: service boundaries, sync+async contracts, observability
+    pass_threshold: 0.7
+    checks:
+      - id: arch-diagram
+        type: file_exists
+        weight: 2
+        critical: true
+        path: architecture-diagram.md
+      - id: contracts
+        type: file_exists
+        weight: 2
+        critical: true
+        path: service-contracts.yaml
+      - id: contracts-valid
+        type: yaml_valid
+        weight: 2
+        critical: true
+        path: service-contracts.yaml
+      - id: k8s-assets
+        type: dir_exists
+        weight: 1
+        path: kubernetes/
+      - id: docker-assets
+        type: dir_exists
+        weight: 1
+        path: docker/
+      - id: observability
+        type: file_contains
+        weight: 2
+        description: Metrics + tracing are part of the design.
+        path: architecture-diagram.md
+        pattern: "(?i)(trac|metric|observab|opentelemetry|prometheus)"
+      - id: resilience
+        type: file_contains
+        weight: 1
+        description: Failure handling (retries/circuit breaker/timeouts) is addressed.
+        path: architecture-diagram.md
+        pattern: "(?i)(retry|circuit breaker|timeout|bulkhead|backoff)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are service boundaries cohesive, with sensible data ownership and no chatty coupling?

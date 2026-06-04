@@ -1,0 +1,45 @@
+agent: responsive-optimizer
+category: ui
+description: >-
+  Verifies responsive audit deliverables: device screenshots, mobile Lighthouse +
+  Core Web Vitals JSON, breakpoint analysis, and touch-optimization guidance.
+template: templates/ui/responsive-optimizer.yaml
+
+scenarios:
+  - id: mobile-optimization
+    description: Audit and optimize an app for mobile/responsive behavior.
+    inputs:
+      task_description: Optimize the app for mobile and responsive layouts.
+      requirements: breakpoints, touch targets, mobile performance
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: responsive-audit-report.md
+      - id: device-screenshots
+        type: file_glob
+        weight: 1
+        pattern: "device-testing-results/*.png"
+        min_matches: 1
+      - id: lighthouse-mobile
+        type: file_exists
+        weight: 2
+        path: performance-optimization/lighthouse-mobile.json
+      - id: core-web-vitals
+        type: file_exists
+        weight: 2
+        path: performance-optimization/core-web-vitals.json
+      - id: cwv-valid
+        type: json_valid
+        weight: 1
+        path: performance-optimization/core-web-vitals.json
+      - id: touch-optimization
+        type: file_exists
+        weight: 1
+        path: mobile-ux-recommendations/touch-optimization.md
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are breakpoints sensible, touch targets >=44px, and is layout shift addressed?

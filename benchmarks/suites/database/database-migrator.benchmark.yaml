@@ -1,0 +1,51 @@
+agent: database-migrator
+category: database
+description: >-
+  Verifies a migration run produces a report, logs, a backup, and — critically —
+  rollback procedures, so a migration is never one-way.
+template: templates/database/database-migrator.yaml
+
+scenarios:
+  - id: add-column-migration
+    description: Apply a schema migration with a safe, reversible plan.
+    inputs:
+      task_description: Migrate the schema to add and backfill a new column safely.
+      requirements: zero-downtime, backup, rollback plan
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: migration-report.md
+      - id: logs-dir
+        type: dir_exists
+        weight: 1
+        path: migration-logs/
+      - id: logs-present
+        type: file_glob
+        weight: 1
+        pattern: "migration-logs/*.log"
+        min_matches: 1
+      - id: backups
+        type: dir_exists
+        weight: 1
+        critical: true
+        path: database-backups/
+      - id: rollback-scripts
+        type: file_glob
+        weight: 3
+        critical: true
+        description: Rollback procedures must exist — migrations must be reversible.
+        pattern: "rollback-procedures/*.sql"
+        min_matches: 1
+      - id: zero-downtime-notes
+        type: file_contains
+        weight: 1
+        description: Report addresses downtime/lock risk.
+        path: migration-report.md
+        pattern: "(?i)(downtime|lock|backfill|online|expand.contract)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Is the migration genuinely reversible and safe under concurrent load?

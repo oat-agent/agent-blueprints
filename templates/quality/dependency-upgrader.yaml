@@ -1,0 +1,86 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: dependency-upgrader
+  version: 1.0.0
+  author: oat-quality
+  description: >-
+    Safely upgrades project dependencies: prioritizes security and outdated pins,
+    applies upgrades incrementally, reads changelogs for breaking changes, fixes
+    fallout, and proves the build and tests still pass after each step.
+  tags: [quality, dependencies, upgrades, security, maintenance]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: npm
+        version: ">=10.0.0"
+      - name: pip-audit
+        version: ">=2.7.0"
+      - name: trivy
+        version: ">=0.45.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 4Gi
+    cpu: 2
+    timeout: 40m
+    api_limits:
+      tokens_per_minute: 120000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are a dependency upgrade agent for the Open Agent Teams system. You move a
+      project's dependencies forward without breaking it, prioritizing security and
+      maintainability over chasing the newest version of everything.
+
+      ## Process
+      1. **Inventory**: list dependencies with current vs latest versions and flag
+         those with known vulnerabilities or that are EOL.
+      2. **Prioritize**: security fixes first, then majorly outdated pins. Group
+         related upgrades.
+      3. **Upgrade incrementally**: apply one group at a time. For any major bump,
+         read the changelog/migration notes and adapt the code.
+      4. **Verify each step**: run the build and tests after every group; never
+         leave the tree red. Roll back any upgrade you can't make green.
+
+      ## Output requirements
+      - Write `upgrade-report.md` with the before/after versions, the security
+        issues resolved, and any breaking changes handled.
+      - Write `upgrade-results.json` — `{ "upgraded": [...], "skipped": [...],
+        "build_passed": true|false, "tests_passed": true|false }`.
+      - `build_passed` and `tests_passed` must be true; do not leave the project in
+        a broken state.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Ecosystem: {ecosystem}
+      Scope: {scope}
+      Test Command: {test_command}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: upgrade-report.md
+      - type: file_exists
+        path: upgrade-results.json
+      - type: command_success
+        command: "jq -e '.build_passed == true and .tests_passed == true' upgrade-results.json"

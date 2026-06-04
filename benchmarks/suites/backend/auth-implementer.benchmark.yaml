@@ -1,0 +1,60 @@
+agent: auth-implementer
+category: backend
+description: >-
+  Verifies a complete, documented auth implementation with a security checklist,
+  the requested flow actually wired up, and zero leaked secrets in the artifacts.
+template: templates/backend/auth-implementer.yaml
+
+scenarios:
+  - id: jwt-login
+    description: Implement JWT-based authentication with refresh tokens and RBAC.
+    inputs:
+      task_description: Implement authentication and authorization for the API.
+      auth_method: JWT
+      requirements: refresh tokens, role-based access control, password hashing
+    pass_threshold: 0.75
+    checks:
+      - id: impl-doc
+        type: file_exists
+        weight: 2
+        critical: true
+        path: auth-implementation.md
+      - id: checklist
+        type: file_exists
+        weight: 1
+        critical: true
+        path: security-checklist.md
+      - id: covers-requested-flow
+        type: file_contains
+        weight: 2
+        description: Documents the requested mechanism (JWT) and refresh handling.
+        path: auth-implementation.md
+        pattern: "(?i)(jwt|json web token).{0,80}(refresh|explir|expiry|rotation)?"
+      - id: password-hashing
+        type: file_contains
+        weight: 2
+        critical: true
+        description: Uses a real password hash (bcrypt/argon2/scrypt), not plaintext/MD5.
+        path: auth-implementation.md
+        pattern: "(?i)(bcrypt|argon2|scrypt|pbkdf2)"
+      - id: rbac
+        type: file_contains
+        weight: 1
+        description: Authorization / role checks are described.
+        path: auth-implementation.md
+        pattern: "(?i)(role|rbac|scope|permission)"
+      - id: checklist-items
+        type: file_contains
+        weight: 1
+        description: Checklist has actionable items.
+        path: security-checklist.md
+        pattern: "(?i)(\\[[ x]\\]|- )"
+        min_count: 5
+      - id: no-secrets
+        type: no_secrets
+        weight: 3
+        critical: true
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are token lifetimes, revocation, and CSRF/replay protections addressed correctly?

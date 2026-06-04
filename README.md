@@ -19,7 +19,11 @@ factory.CreateFromTemplate(ctx, "security-auditor", map[string]interface{}{
 })
 ```
 
-## Available Templates (43 total)
+> **Quality at a glance:** every template is validated against the real OAT factory
+> schema and graded by a two-layer benchmark (static + behavioral). See
+> [`benchmarks/`](benchmarks/README.md) and [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
+
+## Available Templates (53 total)
 
 ### Security (3 templates)
 - **security-auditor** - Comprehensive security vulnerability scanning
@@ -86,6 +90,48 @@ factory.CreateFromTemplate(ctx, "security-auditor", map[string]interface{}{
 - **readme-generator** - README automation
 - **changelog-maintainer** - Changelog management
 
+### Orchestration (4 templates) — *the autonomous-team coordination layer*
+- **orchestrator** (`persistent`) - Decomposes an objective into a dependency-aware task graph and dispatches specialists
+- **planner** (`persistent`) - Turns a spec into waved, independently-shippable issues with contracts
+- **context-manager** (`persistent`) - Shared memory / retrieval index and decision log for the team
+- **task-router** (`persistent`) - Cost-aware model + agent selection per task
+
+### Quality (6 templates)
+- **code-reviewer** (`review`) - PR review with blocking/non-blocking verdict
+- **verification-agent** (`review`) - Independent pass/fail gate with evidence
+- **test-generator** - Meaningful unit/property tests to raise coverage
+- **debugger** - Root-cause analysis with a regression test
+- **refactoring-specialist** - Behavior-preserving refactors guarded by tests
+- **dependency-upgrader** - Safe, build-green dependency upgrades
+
+### Product (2 templates)
+- **requirements-analyst** - Turns ideas into testable specs with acceptance criteria
+- **bug-triager** - Severity/priority triage, dedup, and routing
+
+## Building an autonomous agent team
+
+The original templates are all `worker`s — hands that produce artifacts. A team that
+runs itself also needs **coordination** and **quality gates**, which the new
+categories provide:
+
+```
+                 ┌─────────────────────────────────────────────┐
+   objective ──▶ │ planner → orchestrator → task-router         │  (persistent)
+                 └───────────────┬─────────────────────────────┘
+                                 ▼  dispatches
+        ┌────────────────────────────────────────────────────┐
+        │  workers: api-builder, auth-implementer, debugger,  │
+        │  refactoring-specialist, test-generator, ...        │  (worker)
+        └───────────────┬────────────────────────────────────┘
+                        ▼  outputs reviewed by
+            code-reviewer → verification-agent                  (review)
+                        ▼
+                  context-manager keeps shared memory current   (persistent)
+```
+
+`requirements-analyst` and `bug-triager` feed work in at the top; the review agents
+gate work on the way out.
+
 ## Template Schema
 
 Each template follows the OAT AgentTemplate specification:
@@ -112,13 +158,47 @@ spec:
 
 This repository contains ONLY template definitions. The OAT factory (in the main open-agent-teams repo) fetches and instantiates these templates.
 
+## Benchmark
+
+Templates are evaluated by a two-layer harness in [`benchmarks/`](benchmarks/README.md):
+
+- **Layer 1 — static validation** scores every template (0–100) against the *real*
+  OAT factory rules (`internal/factory/validator.go`): allowed `base.type`
+  (`worker`/`review`/`persistent`), required metadata, valid tool version
+  constraints, memory format, `pr_creation` enum, `{task` placeholder, plus
+  registry↔filesystem consistency and benchmark-suite coverage.
+- **Layer 2 — behavioral scoring** grades the *output* an agent produces for a
+  scenario against a domain-specific, weighted rubric (with hard `critical` gates
+  for safety invariants like "no leaked secrets" and "build still passes").
+
+```bash
+pip install -r benchmarks/requirements.txt
+
+python -m benchmarks.framework.cli validate                 # score all templates
+python -m benchmarks.framework.cli validate --min-score 80 --fail-on major   # CI gate
+python -m benchmarks.framework.cli lint-suites --strict     # validate the suites
+python -m benchmarks.framework.cli score \
+  --suite benchmarks/suites/security/security-auditor.benchmark.yaml \
+  --outputs benchmarks/sample-runs/security-auditor-pass
+```
+
+Every template has a matching suite in `benchmarks/suites/<category>/`.
+
+## Documentation
+
+- [`docs/AGENT_CATALOG.md`](docs/AGENT_CATALOG.md) - all 53 agents, grouped, with roles and factory types
+- [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) - how the benchmark works and how to run it
+- [`benchmarks/README.md`](benchmarks/README.md) - full benchmark methodology and check reference
+- [`benchmarks/schema/benchmark-suite.schema.yaml`](benchmarks/schema/benchmark-suite.schema.yaml) - suite file format
+
 ## Contributing
 
-1. Create new template in appropriate category directory
-2. Follow the schema specification
-3. Update registry.yaml
-4. Test with OAT factory
-5. Submit PR
+1. Create the template in the appropriate category directory (`templates/<category>/`)
+2. Follow the schema specification (and keep `base.type` ∈ `worker`/`review`/`persistent`)
+3. Add an entry to `registry.yaml`
+4. Add a matching benchmark suite under `benchmarks/suites/<category>/`
+5. Run `python -m benchmarks.framework.cli validate --fail-on major` and `lint-suites --strict`
+6. Submit a PR
 
 ## License
 

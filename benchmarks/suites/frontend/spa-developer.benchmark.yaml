@@ -1,0 +1,61 @@
+agent: spa-developer
+category: frontend
+description: >-
+  Verifies a buildable SPA that lints, has a test setup meeting the coverage bar,
+  and documents itself.
+template: templates/frontend/spa-developer.yaml
+
+scenarios:
+  - id: dashboard-spa
+    description: Build a small SPA feature with tests and a clean build.
+    inputs:
+      task_description: Build a single-page dashboard feature.
+      requirements: routing, state management, tests, accessible UI
+    pass_threshold: 0.7
+    checks:
+      - id: package-json
+        type: file_exists
+        weight: 1
+        critical: true
+        path: package.json
+      - id: package-valid
+        type: json_valid
+        weight: 1
+        critical: true
+        path: package.json
+      - id: readme
+        type: file_exists
+        weight: 1
+        path: README.md
+      - id: has-build-script
+        type: file_contains
+        weight: 2
+        description: Defines a build script (template build_success condition).
+        path: package.json
+        pattern: "\"build\":"
+      - id: has-test-and-lint
+        type: file_contains
+        weight: 2
+        description: Defines test + lint scripts.
+        path: package.json
+        pattern: "\"(test|lint)\":"
+        min_count: 2
+      - id: tests-present
+        type: command_output_matches
+        weight: 2
+        critical: true
+        description: At least one test or spec file exists.
+        command: "find . -name '*.test.*' -o -name '*.spec.*'"
+        pattern: "\\.(test|spec)\\."
+      - id: coverage-bar
+        type: metric_threshold
+        weight: 2
+        description: Coverage >= 85 (template condition).
+        path: coverage/coverage-summary.json
+        key: total.lines.pct
+        op: gte
+        value: 85
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Is the component tree sensible, state managed cleanly, and is the UI accessible?

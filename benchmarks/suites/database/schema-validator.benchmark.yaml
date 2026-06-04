@@ -1,0 +1,50 @@
+agent: schema-validator
+category: database
+description: >-
+  Verifies schema validation outputs a report, a schema comparison, machine-readable
+  quality metrics, and remediation scripts for any drift found.
+template: templates/database/schema-validator.yaml
+
+scenarios:
+  - id: drift-detection
+    description: Compare actual vs expected schema and surface drift with fixes.
+    inputs:
+      task_description: Validate the database schema against the expected definition.
+      requirements: detect drift, quality metrics, remediation scripts
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: schema-validation-report.md
+      - id: comparison
+        type: dir_exists
+        weight: 1
+        path: schema-comparison/
+      - id: metrics
+        type: file_glob
+        weight: 2
+        critical: true
+        description: Machine-readable quality metrics produced.
+        pattern: "data-quality-metrics/*.json"
+        min_matches: 1
+      - id: metrics-valid-json
+        type: file_glob
+        weight: 1
+        pattern: "data-quality-metrics/*.json"
+        min_matches: 1
+      - id: remediation
+        type: file_glob
+        weight: 2
+        description: Remediation scripts generated for detected issues.
+        pattern: "remediation-scripts/*.sql"
+        min_matches: 1
+      - id: compliance
+        type: dir_exists
+        weight: 1
+        path: compliance-status/
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are detected drifts accurate and the remediation scripts safe and correct?

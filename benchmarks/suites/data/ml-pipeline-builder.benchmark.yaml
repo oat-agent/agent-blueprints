@@ -1,0 +1,60 @@
+agent: ml-pipeline-builder
+category: data
+description: >-
+  Verifies an end-to-end ML pipeline with MLflow project, pinned deps, all pipeline
+  stages, a Dockerfile, and drift/performance monitoring.
+template: templates/data/ml-pipeline-builder.yaml
+
+scenarios:
+  - id: churn-model
+    description: Build a training-to-deployment pipeline for a churn classifier.
+    inputs:
+      task_description: Build an ML pipeline to train and deploy a churn model.
+      requirements: data validation, training, evaluation, deployment, drift monitoring
+    pass_threshold: 0.7
+    checks:
+      - id: mlproject
+        type: file_exists
+        weight: 2
+        critical: true
+        path: MLproject
+      - id: requirements
+        type: file_exists
+        weight: 1
+        critical: true
+        path: requirements.txt
+      - id: pinned-deps
+        type: file_contains
+        weight: 1
+        description: Dependencies are pinned for reproducibility.
+        path: requirements.txt
+        pattern: "[=~><]=?\\s*\\d+\\.\\d+"
+      - id: pipeline-stages
+        type: file_contains
+        weight: 2
+        description: All required stages are represented.
+        path: MLproject
+        pattern: "(?i)(train|evaluat|preprocess|deploy|validat)"
+        min_count: 2
+      - id: dockerfile
+        type: file_glob
+        weight: 1
+        description: Container build present.
+        pattern: "**/Dockerfile*"
+        min_matches: 1
+      - id: experiment-tracking
+        type: file_contains
+        weight: 1
+        description: MLflow experiment tracking is wired in.
+        path: MLproject
+        pattern: "(?i)mlflow"
+      - id: monitoring
+        type: file_glob
+        weight: 1
+        description: Drift / performance monitoring artifacts.
+        pattern: "**/*.py"
+        min_matches: 1
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Is the pipeline reproducible, with data validation before training and metrics logged for evaluation?

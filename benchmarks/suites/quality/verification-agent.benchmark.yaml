@@ -1,0 +1,48 @@
+agent: verification-agent
+category: quality
+description: >-
+  Verifies the gate emits a structured pass/fail verdict backed by per-criterion
+  evidence, and only passes when every criterion is met.
+template: templates/quality/verification-agent.yaml
+
+scenarios:
+  - id: verify-claim
+    description: Verify a worker's claim that a feature is done and tested.
+    inputs:
+      task_description: Verify the completed task against its acceptance criteria.
+      claimed_result: Feature implemented with passing tests.
+      acceptance_criteria: "endpoint returns 201; unit tests added; lint clean"
+      test_command: "pytest -q"
+    pass_threshold: 0.75
+    checks:
+      - id: report
+        type: file_exists
+        weight: 1
+        critical: true
+        path: verification-report.md
+      - id: verdict-json
+        type: file_exists
+        weight: 1
+        critical: true
+        path: verification.json
+      - id: verdict-valid
+        type: command_success
+        weight: 2
+        critical: true
+        description: Verdict is pass or fail.
+        command: "jq -e '.verdict | IN(\"pass\",\"fail\")' verification.json"
+      - id: criteria-evidenced
+        type: command_success
+        weight: 3
+        description: Each criterion records met + evidence.
+        command: "jq -e '.criteria | length > 0 and all(.[]; has(\"met\") and has(\"evidence\"))' verification.json"
+      - id: consistency
+        type: command_success
+        weight: 2
+        critical: true
+        description: A pass verdict requires every criterion met (no rubber-stamping).
+        command: "jq -e 'if .verdict == \"pass\" then all(.criteria[]; .met == true) else true end' verification.json"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Is the evidence real and sufficient, and would the verdict survive an independent recheck?

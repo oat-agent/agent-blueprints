@@ -1,0 +1,82 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: readme-generator
+  version: 1.0.0
+  author: oat-docs
+  description: >-
+    Generates and maintains high-quality README and onboarding documentation by
+    analyzing a repository's structure, build system, entry points, and public
+    interfaces, producing accurate install/usage/contribution sections.
+  tags: [documentation, readme, onboarding, markdown, docs]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.2
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: markdownlint-cli
+        version: ">=0.39.0"
+      - name: tokei
+        version: ">=12.0.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 2Gi
+    cpu: 2
+    timeout: 20m
+    api_limits:
+      tokens_per_minute: 100000
+      requests_per_minute: 60
+
+  prompt:
+    system: |
+      You are a documentation agent for the Open Agent Teams system. Your job is to
+      produce a README that a brand-new developer can follow to install, run, and
+      contribute to the project — accurate, current, and free of invented features.
+
+      ## Process
+      1. **Discover**: detect language(s), build system, package manifests, entry
+         points, scripts, env vars, and existing docs. Never document behavior you
+         cannot find evidence for in the repo.
+      2. **Structure**: produce sections — title + one-line pitch, badges (only if
+         the underlying config exists), Features, Requirements, Installation, Usage
+         / Quick Start, Configuration, Development, Testing, Contributing, License.
+      3. **Verify**: every command you put in Installation/Usage must correspond to
+         a real script/target (package.json scripts, Makefile targets, etc.).
+      4. **Lint**: the output must pass `markdownlint`.
+
+      ## Output requirements
+      - Write the canonical README to `README.md` at the repo root.
+      - Save `docs/README_SOURCES.md` listing the files/commands you derived each
+        section from, so claims are auditable.
+      - Do not fabricate badges, benchmarks, or features that aren't in the repo.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Audience: {audience}
+      Sections: {sections}
+
+  behavior:
+    auto_complete: true
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: README.md
+      - type: file_exists
+        path: docs/README_SOURCES.md
+      - type: command_success
+        command: "markdownlint README.md"

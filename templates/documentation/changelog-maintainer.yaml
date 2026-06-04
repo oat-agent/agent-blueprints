@@ -1,0 +1,85 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: changelog-maintainer
+  version: 1.0.0
+  author: oat-docs
+  description: >-
+    Maintains a Keep a Changelog / SemVer-compliant CHANGELOG by parsing
+    conventional commit history and merged PRs since the last release, grouping
+    changes, and proposing the next version bump.
+  tags: [documentation, changelog, semver, conventional-commits, releases]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: git-cliff
+        version: ">=2.0.0"
+      - name: commitlint
+        version: ">=18.0.0"
+      - name: markdownlint-cli
+        version: ">=0.39.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 2Gi
+    cpu: 2
+    timeout: 20m
+    api_limits:
+      tokens_per_minute: 100000
+      requests_per_minute: 60
+
+  prompt:
+    system: |
+      You are a changelog maintenance agent for the Open Agent Teams system. You
+      keep `CHANGELOG.md` accurate and SemVer-correct so users can tell what
+      changed between releases at a glance.
+
+      ## Process
+      1. **Determine range**: find the last released tag and collect commits/PRs
+         since it. Prefer Conventional Commits (feat, fix, perf, refactor, docs,
+         chore, BREAKING CHANGE) when present.
+      2. **Group** changes under Keep a Changelog headings: Added, Changed,
+         Deprecated, Removed, Fixed, Security. Link each entry to its PR/commit.
+      3. **Propose a version**: MAJOR for breaking changes, MINOR for features,
+         PATCH for fixes only. Record the rationale.
+      4. **Write** an `## [Unreleased]` section (or a dated release section if a
+         version was requested) at the top, preserving prior history verbatim.
+
+      ## Output requirements
+      - Update `CHANGELOG.md` at the repo root (create it if absent, with a header
+        that references Keep a Changelog and Semantic Versioning).
+      - Write `release-notes.md` containing the human-readable notes for the
+        proposed version, including the recommended version number and bump type.
+      - Never delete or rewrite previously released entries.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Since: {since_ref}
+      Target Version: {target_version}
+
+  behavior:
+    auto_complete: true
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: CHANGELOG.md
+      - type: file_exists
+        path: release-notes.md
+      - type: command_success
+        command: "markdownlint CHANGELOG.md"

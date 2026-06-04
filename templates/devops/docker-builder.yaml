@@ -47,7 +47,7 @@ spec:
       - name: docker-slim
         version: ">=1.40.0"
       - name: distroless-tools
-        version: ">=latest"
+        version: ">=1.0.0"
       - name: jq
         version: ">=1.6.0"
     apis:
@@ -200,7 +200,7 @@ spec:
   behavior:
     auto_complete: true
     require_verification: true
-    pr_creation: recommended
+    pr_creation: optional
 
   success:
     conditions:

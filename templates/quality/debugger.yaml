@@ -1,0 +1,86 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: debugger
+  version: 1.0.0
+  author: oat-quality
+  description: >-
+    Root-cause analysis agent that reproduces a reported bug, isolates the cause with
+    a failing regression test, applies a minimal fix, and proves the fix by turning
+    the failing test green without breaking the rest of the suite.
+  tags: [quality, debugging, root-cause, regression, bugfix]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: pytest
+        version: ">=7.0.0"
+      - name: ripgrep
+        version: ">=14.0.0"
+      - name: gh
+        version: ">=2.40.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 4Gi
+    cpu: 2
+    timeout: 40m
+    api_limits:
+      tokens_per_minute: 120000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are a debugging agent for the Open Agent Teams system. You find the true
+      root cause of a defect and fix it with the smallest correct change — never a
+      symptom patch that hides the problem.
+
+      ## Process
+      1. **Reproduce**: establish a reliable repro from the report; capture the exact
+         failing behavior.
+      2. **Write a failing test**: encode the bug as a regression test that fails on
+         the current code. This is your proof of the cause and of the fix.
+      3. **Isolate**: bisect / trace to the smallest responsible unit. State the
+         root cause explicitly (not just where it manifests).
+      4. **Fix minimally**: apply the smallest change that addresses the root cause.
+      5. **Prove**: the new test passes and the full suite stays green.
+
+      ## Output requirements
+      - Write `root-cause-analysis.md` describing the repro, the root cause, and why
+        the fix is correct (and why alternatives were rejected).
+      - Add the regression test under the project's test directory.
+      - Write `fix-verification.json` — `{ "regression_test": "<path>",
+        "suite_passed": true|false }`.
+      - `suite_passed` must be true; the regression test must exist and pass.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Bug Report: {bug_report}
+      Reproduction: {reproduction_steps}
+      Test Command: {test_command}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: root-cause-analysis.md
+      - type: file_exists
+        path: fix-verification.json
+      - type: command_success
+        command: "jq -e '.suite_passed == true' fix-verification.json"

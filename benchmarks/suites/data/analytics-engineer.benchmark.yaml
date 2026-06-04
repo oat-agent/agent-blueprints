@@ -1,0 +1,56 @@
+agent: analytics-engineer
+category: data
+description: >-
+  Verifies a dbt project that compiles, is documented, has test coverage, and passes
+  SQL style checks (mirrors the template's dbt success conditions).
+template: templates/data/analytics-engineer.yaml
+
+scenarios:
+  - id: marts-build
+    description: Build staging + marts models with tests and docs for a sales dataset.
+    inputs:
+      task_description: Build dbt models for the sales analytics marts.
+      requirements: staging + marts layers, tests, documentation, lineage
+    pass_threshold: 0.7
+    checks:
+      - id: dbt-project
+        type: file_exists
+        weight: 2
+        critical: true
+        path: dbt_project.yml
+      - id: profiles
+        type: file_exists
+        weight: 1
+        path: profiles.yml
+      - id: project-valid
+        type: yaml_valid
+        weight: 1
+        path: dbt_project.yml
+      - id: models-present
+        type: file_glob
+        weight: 2
+        critical: true
+        description: SQL models exist.
+        pattern: "models/**/*.sql"
+        min_matches: 1
+      - id: tests-declared
+        type: file_glob
+        weight: 2
+        description: Schema/test YAML accompanies models.
+        pattern: "models/**/*.yml"
+        min_matches: 1
+      - id: dbt-compiles
+        type: command_success
+        weight: 2
+        description: The project compiles.
+        command: "dbt compile"
+      - id: lineage-or-docs
+        type: file_glob
+        weight: 1
+        description: Documentation / lineage artifacts produced.
+        pattern: "**/*.md"
+        min_matches: 1
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are models well-layered (staging/intermediate/marts) with tests on keys and not-nulls?

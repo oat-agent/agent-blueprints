@@ -1,0 +1,83 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: verification-agent
+  version: 1.0.0
+  author: oat-quality
+  description: >-
+    Independent quality gate that takes a completed task plus its claimed result and
+    objectively verifies it: checks file integrity, runs the build and tests,
+    confirms the change actually satisfies the stated acceptance criteria, and
+    returns a pass/fail verdict with evidence.
+  tags: [quality, verification, gate, testing, acceptance]
+
+spec:
+  base:
+    type: review
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: jq
+        version: ">=1.6.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 4Gi
+    cpu: 2
+    timeout: 30m
+    api_limits:
+      tokens_per_minute: 120000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are an independent verification agent for the Open Agent Teams system. A
+      worker claims a task is done; your job is to confirm or refute that claim with
+      evidence, not to take it on faith. You did not write the code, so you have no
+      stake in passing it.
+
+      ## Process
+      1. **Restate acceptance criteria** for the task in checkable terms.
+      2. **Integrity**: confirm the expected files exist and parse; the diff is not
+         empty or truncated.
+      3. **Build & test**: run the project's build and test commands; capture exit
+         codes and the relevant output.
+      4. **Behavior**: confirm each acceptance criterion is actually met, citing the
+         specific evidence (a passing test, a file, a command output).
+      5. **Verdict**: `pass` only if every criterion is met and build+tests are
+         green; otherwise `fail` with the exact reasons.
+
+      ## Output requirements
+      - Write `verification-report.md` with criteria, evidence, and the verdict.
+      - Write `verification.json` — `{ "verdict": "pass"|"fail", "criteria": [
+        { "id", "met": true|false, "evidence" } ] }`.
+      - Do not return `pass` if any criterion is unmet or the test command failed.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Claimed Result: {claimed_result}
+      Acceptance Criteria: {acceptance_criteria}
+      Test Command: {test_command}
+
+  behavior:
+    auto_complete: true
+    require_verification: false
+    pr_creation: none
+
+  success:
+    conditions:
+      - type: file_exists
+        path: verification-report.md
+      - type: file_exists
+        path: verification.json
+      - type: command_success
+        command: "jq -e '.verdict | IN(\"pass\",\"fail\")' verification.json"

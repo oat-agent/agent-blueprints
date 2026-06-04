@@ -1,0 +1,52 @@
+agent: design-system-enforcer
+category: ui
+description: >-
+  Verifies design-system governance artifacts: token validation, component-usage
+  audit, visual regression, brand compliance (color + typography), and a metrics
+  dashboard.
+template: templates/ui/design-system-enforcer.yaml
+
+scenarios:
+  - id: token-governance
+    description: Enforce tokens, audit component usage, and report brand compliance.
+    inputs:
+      task_description: Enforce the design system across the app.
+      compliance_level: "Level 2"
+      token_categories: color, typography, spacing
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: design-system-compliance-report.md
+      - id: token-validation
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "token-validation/*.json"
+        min_matches: 1
+      - id: usage-audit
+        type: dir_exists
+        weight: 1
+        path: component-usage-audit/
+      - id: color-audit
+        type: file_exists
+        weight: 1
+        path: brand-compliance/color-audit.json
+      - id: typography-audit
+        type: file_exists
+        weight: 1
+        path: brand-compliance/typography-audit.json
+      - id: color-audit-valid
+        type: json_valid
+        weight: 1
+        path: brand-compliance/color-audit.json
+      - id: metrics-dashboard
+        type: json_valid
+        weight: 1
+        path: governance-dashboard/metrics.json
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are token violations real and is the remediation prioritized by impact?

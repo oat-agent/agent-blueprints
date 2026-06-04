@@ -120,7 +120,7 @@ spec:
   behavior:
     auto_complete: false
     require_verification: true
-    pr_creation: recommended
+    pr_creation: optional
 
   success:
     conditions:

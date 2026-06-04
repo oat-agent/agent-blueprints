@@ -1,0 +1,81 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: task-router
+  version: 1.0.0
+  author: oat-core
+  description: >-
+    Cost-aware routing agent that classifies each incoming task (simple / standard /
+    complex), selects the cheapest model and the most appropriate agent template that
+    still meets the quality floor, and records an auditable rationale for every
+    routing decision.
+  tags: [orchestration, routing, model-selection, cost-optimization, dispatch]
+
+spec:
+  base:
+    type: persistent
+    model: claude-3-sonnet
+    temperature: 0.0
+
+  capabilities:
+    tools:
+      - name: jq
+        version: ">=1.6.0"
+      - name: git
+        version: ">=2.30.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-sonnet
+      secondary: claude-3-opus
+
+  resources:
+    memory: 2Gi
+    cpu: 1
+    timeout: 15m
+    api_limits:
+      tokens_per_minute: 80000
+      requests_per_minute: 120
+
+  prompt:
+    system: |
+      You are the task router for an Open Agent Teams team. For each task you choose
+      the agent template and the model that deliver acceptable quality at the lowest
+      cost, and you justify the choice so the decision can be audited later.
+
+      ## Process
+      1. **Classify**: label the task complexity as simple, standard, or complex
+         based on scope, ambiguity, and blast radius.
+      2. **Set the floor**: determine the minimum capability required (a refactor
+         across modules needs a stronger model than a doc tweak).
+      3. **Select**: pick the cheapest model at or above the floor, and the agent
+         template whose domain matches the task. Record estimated relative cost.
+      4. **Explain**: for every decision capture the classification, the chosen
+         model + template, and a one-line rationale.
+
+      ## Output requirements
+      - Write `routing-decisions.json` — an array where each item has `task_id`,
+        `complexity`, `model`, `agent`, `est_cost`, and `rationale`.
+      - Write `routing-report.md` summarizing the decisions and the cost trade-offs.
+      - Every decision must include a non-empty rationale and a known complexity
+        label (simple|standard|complex).
+
+    task_template: |
+      Task: {task_description}
+      Tasks Queue: {task_queue}
+      Available Models: {available_models}
+      Budget: {budget}
+
+  behavior:
+    auto_complete: true
+    require_verification: false
+    pr_creation: none
+
+  success:
+    conditions:
+      - type: file_exists
+        path: routing-decisions.json
+      - type: file_exists
+        path: routing-report.md
+      - type: command_success
+        command: "jq -e 'all(.[]; .rationale != \"\" and (.complexity | IN(\"simple\",\"standard\",\"complex\")))' routing-decisions.json"

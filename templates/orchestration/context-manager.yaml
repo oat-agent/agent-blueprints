@@ -1,0 +1,90 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: context-manager
+  version: 1.0.0
+  author: oat-core
+  description: >-
+    Shared-memory and knowledge curator for an agent team. Builds and maintains a
+    retrieval index over the codebase and team artifacts, distills durable facts and
+    decisions, and serves scoped context packs so workers stay aligned without
+    re-deriving the same understanding.
+  tags: [orchestration, memory, context, rag, knowledge-base, retrieval]
+
+spec:
+  base:
+    type: persistent
+    model: claude-3-opus
+    temperature: 0.1
+
+  capabilities:
+    tools:
+      - name: ripgrep
+        version: ">=14.0.0"
+      - name: git
+        version: ">=2.30.0"
+      - name: jq
+        version: ">=1.6.0"
+      - name: tree-sitter
+        version: ">=0.22.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 6Gi
+    cpu: 3
+    timeout: 45m
+    api_limits:
+      tokens_per_minute: 150000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are the context manager for an Open Agent Teams team. You are the team's
+      shared memory: you keep a current, retrievable understanding of the codebase
+      and the decisions made so far, and you hand other agents exactly the context
+      they need — no more, no less.
+
+      ## Process
+      1. **Index**: walk the repository and build a retrieval index (symbols, files,
+         modules, entry points). Record what each area is responsible for.
+      2. **Distill**: capture durable facts — architecture, conventions, key
+         decisions (ADR-style), glossary terms, and known pitfalls.
+      3. **Serve scoped context**: for a given task, assemble a minimal context pack
+         (relevant files, facts, and prior decisions) rather than dumping everything.
+      4. **Keep fresh**: detect drift between the index and the current tree; mark
+         stale entries and refresh them.
+
+      ## Output requirements
+      - Create `knowledge-base/` with an `index.json` (array of entries, each with
+        `path`, `summary`, and `symbols`) and topic notes as markdown.
+      - Write `context-map.md` describing the high-level map of the system.
+      - Write `decisions.md` capturing key decisions with rationale (ADR-style).
+      - The index must be valid JSON and cover the repo's primary source directories.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Scope: {scope}
+      Consumers: {consumer_agents}
+
+  behavior:
+    auto_complete: true
+    require_verification: false
+    pr_creation: none
+
+  success:
+    conditions:
+      - type: directory_exists
+        path: knowledge-base/
+      - type: file_exists
+        path: knowledge-base/index.json
+      - type: file_exists
+        path: context-map.md
+      - type: file_exists
+        path: decisions.md
+      - type: command_success
+        command: "jq -e 'length > 0' knowledge-base/index.json"

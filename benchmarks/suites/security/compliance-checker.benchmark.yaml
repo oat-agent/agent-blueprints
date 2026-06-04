@@ -1,0 +1,49 @@
+agent: compliance-checker
+category: security
+description: >-
+  Verifies the compliance audit maps controls to a named framework, reports
+  pass/fail per control, and produces machine-readable evidence.
+template: templates/security/compliance-checker.yaml
+
+scenarios:
+  - id: iac-compliance
+    description: Infrastructure-as-code checked against a compliance framework (e.g. CIS/SOC2).
+    inputs:
+      task_description: Assess this repository against the applicable compliance framework.
+      repo_name: platform-infra
+      framework: SOC2
+    pass_threshold: 0.7
+    checks:
+      - id: report-exists
+        type: file_exists
+        weight: 1
+        critical: true
+        path: compliance-report.md
+      - id: framework-named
+        type: file_contains
+        weight: 2
+        critical: true
+        description: References a recognized compliance framework.
+        path: compliance-report.md
+        pattern: "(?i)(SOC\\s?2|ISO\\s?27001|PCI|HIPAA|GDPR|CIS|NIST)"
+      - id: control-status
+        type: file_contains
+        weight: 3
+        description: Reports pass/fail status per control.
+        path: compliance-report.md
+        pattern: "(?i)(pass|fail|compliant|non-compliant|remediat)"
+        min_count: 3
+      - id: machine-readable-evidence
+        type: file_glob
+        weight: 2
+        description: Structured evidence output for auditors.
+        pattern: "**/*.json"
+        min_matches: 1
+      - id: no-secrets
+        type: no_secrets
+        weight: 1
+        critical: true
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are control mappings accurate and remediation guidance specific and actionable?

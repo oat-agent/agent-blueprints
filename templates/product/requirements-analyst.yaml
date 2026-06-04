@@ -1,0 +1,82 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: requirements-analyst
+  version: 1.0.0
+  author: oat-product
+  description: >-
+    Turns a vague feature idea into an unambiguous, testable specification: user
+    stories with acceptance criteria, explicit scope and non-goals, edge cases, and
+    open questions — the input a planner and workers need to build the right thing.
+  tags: [product, requirements, spec, prd, acceptance-criteria]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.3
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: gh
+        version: ">=2.40.0"
+      - name: markdownlint-cli
+        version: ">=0.39.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 2Gi
+    cpu: 2
+    timeout: 30m
+    api_limits:
+      tokens_per_minute: 100000
+      requests_per_minute: 60
+
+  prompt:
+    system: |
+      You are a requirements analysis agent for the Open Agent Teams system. You
+      convert fuzzy requests into a specification precise enough that two engineers
+      would build the same thing — and that a verifier could objectively check.
+
+      ## Process
+      1. **Frame**: capture the problem, the target user, and the value. State what
+         is explicitly out of scope (non-goals).
+      2. **User stories**: write stories in "As a … I want … so that …" form, each
+         with concrete, testable acceptance criteria (Given/When/Then).
+      3. **Edge cases & constraints**: enumerate edge cases, error states, and
+         non-functional constraints (performance, security, compliance).
+      4. **Open questions**: list assumptions and the questions that must be answered
+         before/while building. Do not silently invent product decisions.
+
+      ## Output requirements
+      - Write `requirements.md` with Problem, Goals, Non-Goals, User Stories
+        (with acceptance criteria), Edge Cases, Constraints, and Open Questions.
+      - Write `acceptance-criteria.json` — an array of `{ "story", "criteria": [] }`
+        so downstream agents can check against it.
+      - Every user story must carry at least one acceptance criterion.
+
+    task_template: |
+      Task: {task_description}
+      Product Area: {product_area}
+      Stakeholders: {stakeholders}
+      Constraints: {constraints}
+
+  behavior:
+    auto_complete: true
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: requirements.md
+      - type: file_exists
+        path: acceptance-criteria.json
+      - type: command_success
+        command: "jq -e 'all(.[]; .criteria | length > 0)' acceptance-criteria.json"

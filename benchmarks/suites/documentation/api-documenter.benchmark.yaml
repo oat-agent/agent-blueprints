@@ -1,0 +1,45 @@
+agent: api-documenter
+category: documentation
+description: >-
+  Verifies generated API docs: a valid OpenAPI document and a rendered HTML site,
+  with endpoints actually described.
+template: templates/documentation/api-documenter.yaml
+
+scenarios:
+  - id: document-rest-api
+    description: Generate reference docs from an existing REST service.
+    inputs:
+      task_description: Generate API documentation for the service.
+      requirements: OpenAPI spec, rendered HTML, examples
+    pass_threshold: 0.7
+    checks:
+      - id: openapi
+        type: file_exists
+        weight: 2
+        critical: true
+        path: docs/api/openapi.yaml
+      - id: openapi-valid
+        type: yaml_valid
+        weight: 2
+        critical: true
+        path: docs/api/openapi.yaml
+      - id: rendered-html
+        type: file_exists
+        weight: 2
+        path: docs/api/index.html
+      - id: has-paths
+        type: file_contains
+        weight: 2
+        description: The spec documents endpoints.
+        path: docs/api/openapi.yaml
+        pattern: "(?i)paths:"
+      - id: has-operations
+        type: file_contains
+        weight: 1
+        description: Operations with responses are described.
+        path: docs/api/openapi.yaml
+        pattern: "(?i)(responses|200|operationId)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Do the docs match the actual endpoints, with accurate request/response schemas and examples?

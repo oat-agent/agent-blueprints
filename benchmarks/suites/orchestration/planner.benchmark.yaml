@@ -1,0 +1,56 @@
+agent: planner
+category: orchestration
+description: >-
+  Verifies the planner emits a plan, per-issue files with acceptance criteria, and a
+  dependency graph that is well-formed and references only real issues.
+template: templates/orchestration/planner.yaml
+
+scenarios:
+  - id: spec-to-issues
+    description: Turn a feature spec into waved issues with contracts.
+    inputs:
+      task_description: Produce an implementation plan for a notifications feature.
+      spec_reference: docs/notifications-spec.md
+    pass_threshold: 0.8
+    checks:
+      - id: plan
+        type: file_exists
+        weight: 1
+        critical: true
+        path: plan.md
+      - id: issues-dir
+        type: dir_exists
+        weight: 1
+        path: issues/
+      - id: issue-files
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "issues/issue-*.md"
+        min_matches: 2
+      - id: acceptance-criteria
+        type: command_output_matches
+        weight: 2
+        description: Issues carry acceptance criteria.
+        command: "cat issues/issue-*.md"
+        pattern: "(?i)acceptance criteria"
+      - id: dep-graph
+        type: json_valid
+        weight: 1
+        critical: true
+        path: dependency-graph.json
+      - id: dep-graph-shape
+        type: command_success
+        weight: 2
+        description: Graph lists issues with depends_on arrays.
+        command: "jq -e '.issues | length > 0 and all(.[]; has(\"id\") and has(\"depends_on\"))' dependency-graph.json"
+      - id: contracts-defined
+        type: file_contains
+        weight: 1
+        description: Plan defines interface contracts before parallel work.
+        path: plan.md
+        pattern: "(?i)(contract|interface|api|schema|non-goal)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are issues independently shippable, correctly waved, and is scope vs non-goals explicit?

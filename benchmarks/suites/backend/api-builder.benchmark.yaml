@@ -1,0 +1,76 @@
+agent: api-builder
+category: backend
+description: >-
+  Verifies the agent ships a valid OpenAPI contract, runnable endpoints with tests,
+  input validation, and meets the >=80% coverage bar from the template's success
+  conditions.
+template: templates/backend/api-builder.yaml
+
+scenarios:
+  - id: rest-crud-service
+    description: Build a REST CRUD service for a "tasks" resource with validation and auth.
+    inputs:
+      task_description: Build a REST API for managing tasks with CRUD endpoints.
+      api_type: REST
+      framework: FastAPI
+      database: PostgreSQL
+      auth_method: JWT
+      requirements: input validation, pagination, error handling
+    pass_threshold: 0.75
+    checks:
+      - id: api-docs
+        type: file_exists
+        weight: 1
+        path: api-documentation.md
+      - id: openapi-present
+        type: file_exists
+        weight: 2
+        critical: true
+        path: openapi.yaml
+      - id: openapi-valid
+        type: yaml_valid
+        weight: 2
+        critical: true
+        description: The OpenAPI document parses.
+        path: openapi.yaml
+      - id: declares-crud-paths
+        type: file_contains
+        weight: 2
+        description: Spec declares the CRUD operations.
+        path: openapi.yaml
+        pattern: "(?i)(get|post|put|patch|delete):"
+        min_count: 4
+      - id: has-validation
+        type: file_contains
+        weight: 2
+        description: Request schema / validation is defined.
+        path: openapi.yaml
+        pattern: "(?i)(schema|required|properties)"
+      - id: tests-present
+        type: file_glob
+        weight: 2
+        critical: true
+        description: Endpoint tests exist.
+        pattern: "**/test_*.py"
+        min_matches: 1
+      - id: coverage-bar
+        type: metric_threshold
+        weight: 3
+        description: Reported test coverage >= 80% (template success condition).
+        path: coverage.json
+        key: totals.percent_covered
+        op: gte
+        value: 80
+      - id: tests-pass
+        type: command_success
+        weight: 2
+        description: The test suite runs green.
+        command: "python -m pytest -q"
+      - id: no-secrets
+        type: no_secrets
+        weight: 1
+        critical: true
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are errors handled consistently, status codes correct, and the contract idiomatic?

@@ -1,0 +1,47 @@
+agent: dependency-upgrader
+category: quality
+description: >-
+  Verifies dependency upgrades leave the project building and tests green, with a
+  report covering resolved security issues and breaking changes.
+template: templates/quality/dependency-upgrader.yaml
+
+scenarios:
+  - id: security-upgrades
+    description: Upgrade vulnerable/outdated deps without breaking the build.
+    inputs:
+      task_description: Upgrade dependencies, prioritizing security fixes.
+      ecosystem: python
+      test_command: "pytest -q"
+    pass_threshold: 0.8
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: upgrade-report.md
+      - id: results-file
+        type: file_exists
+        weight: 1
+        critical: true
+        path: upgrade-results.json
+      - id: build-and-tests-green
+        type: command_success
+        weight: 3
+        critical: true
+        description: Build and tests pass after upgrades.
+        command: "jq -e '.build_passed == true and .tests_passed == true' upgrade-results.json"
+      - id: upgrades-listed
+        type: command_success
+        weight: 1
+        description: Reports what was upgraded.
+        command: "jq -e '.upgraded | length >= 0' upgrade-results.json"
+      - id: security-addressed
+        type: file_contains
+        weight: 2
+        description: Report ties upgrades to security/CVE fixes or breaking-change handling.
+        path: upgrade-report.md
+        pattern: "(?i)(cve|vulnerab|security|breaking|changelog|migrat)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Were major bumps handled by reading migration notes, with risky upgrades isolated/rolled back if needed?

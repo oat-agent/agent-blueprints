@@ -40,7 +40,7 @@ spec:
         version: ">=1.36.0"
       - name: stylelint
         version: ">=15.10.0"
-      - name: eslint-plugin-design-system"
+      - name: eslint-plugin-design-system
         version: ">=1.0.0"
       - name: "@adobe/spectrum-tokens"
         version: ">=13.0.0"

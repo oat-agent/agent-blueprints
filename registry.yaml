@@ -271,3 +271,79 @@ templates:
     author: oat-infra
     verified: true
     stability: stable
+
+  # --- orchestration ----------------------------------------------------------
+  # Coordination/meta agents for running an autonomous team (persistent roles).
+  - name: orchestrator
+    path: templates/orchestration/orchestrator.yaml
+    author: oat-core
+    verified: true
+    stability: beta
+
+  - name: planner
+    path: templates/orchestration/planner.yaml
+    author: oat-core
+    verified: true
+    stability: beta
+
+  - name: context-manager
+    path: templates/orchestration/context-manager.yaml
+    author: oat-core
+    verified: true
+    stability: experimental
+
+  - name: task-router
+    path: templates/orchestration/task-router.yaml
+    author: oat-core
+    verified: true
+    stability: experimental
+
+  # --- quality ----------------------------------------------------------------
+  - name: code-reviewer
+    path: templates/quality/code-reviewer.yaml
+    author: oat-quality
+    verified: true
+    stability: beta
+
+  - name: verification-agent
+    path: templates/quality/verification-agent.yaml
+    author: oat-quality
+    verified: true
+    stability: beta
+
+  - name: test-generator
+    path: templates/quality/test-generator.yaml
+    author: oat-quality
+    verified: true
+    stability: beta
+
+  - name: debugger
+    path: templates/quality/debugger.yaml
+    author: oat-quality
+    verified: true
+    stability: beta
+
+  - name: refactoring-specialist
+    path: templates/quality/refactoring-specialist.yaml
+    author: oat-quality
+    verified: true
+    stability: beta
+
+  - name: dependency-upgrader
+    path: templates/quality/dependency-upgrader.yaml
+    author: oat-quality
+    verified: true
+    stability: beta
+
+  # --- product ----------------------------------------------------------------
+  - name: requirements-analyst
+    path: templates/product/requirements-analyst.yaml
+    author: oat-product
+    verified: true
+    stability: beta
+
+  - name: bug-triager
+    path: templates/product/bug-triager.yaml
+    author: oat-product
+    verified: true
+    stability: beta

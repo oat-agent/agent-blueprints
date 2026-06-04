@@ -1,0 +1,65 @@
+agent: code-reviewer
+category: quality
+description: >-
+  Verifies the reviewer emits a structured verdict, anchors findings to lines, and
+  never approves a diff containing a planted secret or injection sink.
+template: templates/quality/code-reviewer.yaml
+
+scenarios:
+  - id: risky-diff
+    description: Review a diff that introduces a SQL injection and a hardcoded token.
+    workspace: fixtures/code-reviewer/risky-diff
+    inputs:
+      task_description: Review the pull request diff.
+      pr_number: "101"
+      base_ref: main
+    pass_threshold: 0.8
+    checks:
+      - id: review-md
+        type: file_exists
+        weight: 1
+        critical: true
+        path: review.md
+      - id: review-json
+        type: file_exists
+        weight: 1
+        critical: true
+        path: review.json
+      - id: verdict-valid
+        type: command_success
+        weight: 2
+        critical: true
+        description: Verdict is one of the allowed values.
+        command: "jq -e '.verdict | IN(\"approve\",\"request-changes\")' review.json"
+      - id: requests-changes
+        type: command_success
+        weight: 3
+        critical: true
+        description: Must NOT approve — the diff has serious defects.
+        command: "jq -e '.verdict == \"request-changes\"' review.json"
+      - id: flags-injection
+        type: file_contains
+        weight: 2
+        description: Calls out the injection sink.
+        path: review.md
+        pattern: "(?i)(sql injection|injection|parameteriz)"
+      - id: flags-secret
+        type: file_contains
+        weight: 2
+        description: Calls out the hardcoded secret.
+        path: review.md
+        pattern: "(?i)(secret|token|credential|hardcoded)"
+      - id: line-anchored
+        type: file_contains
+        weight: 1
+        description: Findings cite file:line.
+        path: review.md
+        pattern: "\\w+\\.(py|js|ts|go):\\d+"
+      - id: no-secrets
+        type: no_secrets
+        weight: 1
+        critical: true
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are blocking vs non-blocking calls correct, with no nitpicking and no missed real defects?

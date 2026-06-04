@@ -1,0 +1,49 @@
+agent: component-builder
+category: ui
+description: >-
+  Verifies built components ship with tests, Storybook stories, and docs, following
+  the template's directory contract.
+template: templates/ui/component-builder.yaml
+
+scenarios:
+  - id: data-table
+    description: Build a reusable, accessible data-table component.
+    inputs:
+      task_description: Build a reusable DataTable component.
+      requirements: typed props, tests, stories, a11y
+    pass_threshold: 0.7
+    checks:
+      - id: components
+        type: file_glob
+        weight: 2
+        critical: true
+        description: Component source files exist.
+        pattern: "src/components/**/*.tsx"
+        min_matches: 1
+      - id: tests
+        type: command_output_matches
+        weight: 2
+        critical: true
+        description: Component tests exist.
+        command: "find __tests__ src -name '*.test.*' -o -name '*.spec.*'"
+        pattern: "\\.(test|spec)\\."
+      - id: stories
+        type: file_glob
+        weight: 1
+        description: Storybook stories exist.
+        pattern: "stories/**/*.stories.*"
+        min_matches: 1
+      - id: docs
+        type: file_exists
+        weight: 1
+        path: docs/README.md
+      - id: typed-props
+        type: command_output_matches
+        weight: 1
+        description: Components declare typed props/interfaces.
+        command: "cat src/components/**/*.tsx 2>/dev/null || find src/components -name '*.tsx' -exec cat {} +"
+        pattern: "(interface|type )\\s*\\w*Props"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are components composable, accessible (roles/labels), and free of prop-drilling smells?

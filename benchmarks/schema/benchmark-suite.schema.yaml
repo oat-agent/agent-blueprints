@@ -1,0 +1,96 @@
+# Benchmark Suite Schema (documentation-by-example)
+#
+# A benchmark suite defines how one agent template is evaluated behaviourally.
+# File naming convention: benchmarks/suites/<category>/<agent>.benchmark.yaml
+# Validate suites with: python -m benchmarks.framework.cli lint-suites --strict
+#
+# ───────────────────────────────────────────────────────────────────────────────
+
+# REQUIRED. Must match the template's metadata.name (and its filename stem).
+agent: example-agent
+
+# Advisory grouping; should match the template's category directory.
+category: example
+
+# Human-readable description of what this suite measures.
+description: >-
+  One sentence on what "good" means for this agent and what the scenarios probe.
+
+# Path (from repo root) to the template this suite tests. Used for traceability.
+template: templates/example/example-agent.yaml
+
+# REQUIRED. One or more scenarios. Each is an independent task the agent must do.
+scenarios:
+  - # REQUIRED. Stable id; also the name of the output subdirectory the runner reads
+    # (<outputs>/<id>/). Keep it filesystem-safe.
+    id: happy-path
+
+    # What this scenario exercises.
+    description: Baseline task on a clean, well-formed input.
+
+    # Values bound to the template's prompt.task_template {variables}.
+    inputs:
+      task_description: Do the representative job for this agent.
+      # ...any other {vars} the template declares
+
+    # OPTIONAL. Fixture directory (under benchmarks/fixtures/) copied in as the
+    # agent's starting workspace. Use it to plant the problem the agent must solve.
+    workspace: fixtures/example-agent/happy-path
+
+    # Minimum weighted score (0..1) for the scenario to pass. Default 0.7.
+    pass_threshold: 0.7
+
+    # REQUIRED. Weighted checks evaluated against <outputs>/<id>/.
+    checks:
+      - id: produced-report          # unique within the scenario
+        type: file_exists            # see framework/checks.py for all types
+        weight: 1                    # relative weight in the scenario (default 1)
+        critical: false             # if true, failing it fails the whole scenario
+        description: Wrote the top-level report.
+        path: report.md              # type-specific params live at the top level
+
+      - id: addressed-the-real-issue
+        type: file_contains
+        weight: 3
+        critical: true
+        description: The planted problem is explicitly remediated.
+        path: report.md
+        pattern: "(?i)remediat|fixed|resolved"
+        min_count: 1
+
+      - id: no-secret-leak
+        type: no_secrets
+        weight: 2
+        critical: true
+        description: Output never echoes credentials.
+
+      - id: metric-meets-bar
+        type: metric_threshold
+        weight: 2
+        description: Self-reported quality metric clears the bar.
+        path: metrics.json
+        key: coverage.pct
+        op: gte
+        value: 80
+
+      - id: subjective-quality
+        type: llm_rubric          # skipped unless a judge is configured
+        weight: 1
+        description: Findings are clear, prioritised, and actionable.
+        criteria: >-
+          Are the findings ranked by severity, with concrete, correct fixes and
+          no hallucinated issues?
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Check param reference (see benchmarks/README.md for the table):
+#   file_exists/dir_exists     : path
+#   file_glob                  : pattern, min_matches
+#   file_contains              : path, pattern, min_count, ignore_case
+#   file_not_contains          : path, pattern, ignore_case
+#   no_secrets                 : globs, extra_patterns
+#   json_valid/yaml_valid      : path
+#   json_path                  : path, query, op(eq|ne|gt|gte|lt|lte|contains|exists), value
+#   metric_threshold           : path, key, op, value
+#   command_success            : command, cwd, timeout
+#   command_output_matches     : command, pattern, cwd, timeout
+#   llm_rubric                 : criteria

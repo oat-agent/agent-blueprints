@@ -46,4 +46,8 @@ venv/
 *-report.md
 *-report.json
 profiles/
-benchmarks/
+
+# ...but benchmark fixtures and sample runs are committed test data, not generated
+# output, even though some filenames (e.g. security-report.md) match the patterns above.
+!benchmarks/fixtures/**
+!benchmarks/sample-runs/**

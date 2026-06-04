@@ -1,0 +1,48 @@
+agent: monitoring-alerter
+category: automation
+description: >-
+  Verifies observability deliverables: monitoring + dashboards + alerting configs,
+  a runbook, and an incident-response doc.
+template: templates/automation/monitoring-alerter.yaml
+
+scenarios:
+  - id: service-observability
+    description: Stand up monitoring, dashboards, and actionable alerts for a service.
+    inputs:
+      task_description: Set up monitoring and alerting for the payments service.
+      requirements: SLO-based alerts, dashboards, runbook
+    pass_threshold: 0.7
+    checks:
+      - id: monitoring
+        type: dir_exists
+        weight: 1
+        critical: true
+        path: monitoring/
+      - id: dashboards
+        type: file_glob
+        weight: 1
+        pattern: "dashboards/**/*.json"
+        min_matches: 1
+      - id: alerting
+        type: dir_exists
+        weight: 2
+        critical: true
+        path: alerting/
+      - id: alert-rules
+        type: command_output_matches
+        weight: 2
+        description: Alert rules define conditions/thresholds.
+        command: "find alerting monitoring -name '*.yml' -o -name '*.yaml' -o -name '*.json' | head -20 | xargs cat 2>/dev/null"
+        pattern: "(?i)(alert|expr|threshold|severity|for:)"
+      - id: runbook
+        type: file_exists
+        weight: 2
+        path: docs/RUNBOOK.md
+      - id: incident-response
+        type: file_exists
+        weight: 1
+        path: docs/INCIDENT_RESPONSE.md
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are alerts symptom-based (SLO/burn-rate), low-noise, and tied to runbook actions?

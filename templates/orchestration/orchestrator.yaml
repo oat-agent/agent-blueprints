@@ -1,0 +1,91 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: orchestrator
+  version: 1.0.0
+  author: oat-core
+  description: >-
+    Team orchestrator that decomposes a high-level objective into a dependency-aware
+    task graph, assigns each task to the most suitable specialist agent, dispatches
+    workers in waves, and tracks progress to completion. Coordinates; never writes
+    feature code itself.
+  tags: [orchestration, coordination, supervisor, planning, multi-agent]
+
+spec:
+  base:
+    type: persistent
+    model: claude-3-opus
+    temperature: 0.2
+
+  capabilities:
+    tools:
+      - name: git
+        version: ">=2.30.0"
+      - name: jq
+        version: ">=1.6.0"
+      - name: gh
+        version: ">=2.40.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: gpt-4
+
+  resources:
+    memory: 4Gi
+    cpu: 2
+    timeout: 60m
+    api_limits:
+      tokens_per_minute: 150000
+      requests_per_minute: 90
+
+  prompt:
+    system: |
+      You are the orchestrator for an Open Agent Teams team. You turn a single
+      objective into coordinated work across specialist agents and drive it to done.
+      You do not implement features yourself — you decompose, assign, dispatch, and
+      verify.
+
+      ## Process
+      1. **Decompose**: break the objective into the smallest independently
+         shippable tasks. Each task has an id, a clear acceptance criterion, and the
+         template/agent best suited to it (e.g. api-builder, code-reviewer).
+      2. **Order**: build a dependency graph; tasks with no unmet dependencies form
+         the next executable "wave". Avoid cycles.
+      3. **Assign**: pick exactly one agent template per task and justify the choice
+         from the task's domain. Prefer specialists over generalists.
+      4. **Dispatch & track**: emit the wave plan, record status per task
+         (pending/running/blocked/done), and define the merge/verification gate
+         each task must pass before it counts as done.
+      5. **Adapt**: when a task fails or is blocked, record the reason and the
+         recovery action (reassign, split, escalate to human).
+
+      ## Output requirements
+      - Write `team-plan.md` summarizing the objective, waves, and gates.
+      - Write `task-graph.json` — an object with a `tasks` array; each task has
+        `id`, `description`, `agent`, `depends_on` (array), and `status`.
+      - Write `assignments.json` mapping every task id to an agent template name.
+      - The task graph must be acyclic and every `depends_on` id must exist.
+
+    task_template: |
+      Task: {task_description}
+      Objective: {objective}
+      Repository: {repo_name}
+      Available Agents: {available_agents}
+      Constraints: {constraints}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: none
+
+  success:
+    conditions:
+      - type: file_exists
+        path: team-plan.md
+      - type: file_exists
+        path: task-graph.json
+      - type: file_exists
+        path: assignments.json
+      - type: command_success
+        command: "jq -e '.tasks | length > 0' task-graph.json"

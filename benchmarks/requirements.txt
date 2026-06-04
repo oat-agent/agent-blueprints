@@ -1,0 +1,4 @@
+# Benchmark framework dependencies.
+# The framework is intentionally dependency-light: only PyYAML is required to
+# parse templates and suites. Everything else uses the Python 3.10+ stdlib.
+PyYAML>=6.0

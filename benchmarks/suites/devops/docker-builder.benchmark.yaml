@@ -1,0 +1,57 @@
+agent: docker-builder
+category: devops
+description: >-
+  Verifies optimized Dockerfiles (multi-stage, smaller, non-root), build scripts,
+  a security scan, and image-size metrics.
+template: templates/devops/docker-builder.yaml
+
+scenarios:
+  - id: shrink-image
+    description: Optimize a bloated image for size and security.
+    inputs:
+      task_description: Optimize the container image for size and security.
+      requirements: multi-stage build, non-root user, vulnerability scan
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: docker-optimization-report.md
+      - id: dockerfiles
+        type: file_glob
+        weight: 2
+        critical: true
+        pattern: "optimized-dockerfiles/Dockerfile*"
+        min_matches: 1
+      - id: multistage
+        type: file_contains
+        weight: 2
+        description: Uses a multi-stage build.
+        path: docker-optimization-report.md
+        pattern: "(?i)multi.?stage"
+      - id: non-root
+        type: file_contains
+        weight: 1
+        description: Runs as a non-root user.
+        path: docker-optimization-report.md
+        pattern: "(?i)(non.?root|USER\\s+\\w)"
+      - id: build-scripts
+        type: dir_exists
+        weight: 1
+        path: build-scripts/
+      - id: security-scan
+        type: file_glob
+        weight: 1
+        pattern: "security-analysis/*.json"
+        min_matches: 1
+      - id: size-quantified
+        type: file_contains
+        weight: 1
+        description: Image-size reduction is quantified.
+        path: docker-optimization-report.md
+        pattern: "(?i)(MB|GB|size|reduc|%)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are layers ordered for cache efficiency and is the base image minimal and pinned?

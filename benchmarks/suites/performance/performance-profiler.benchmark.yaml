@@ -1,0 +1,43 @@
+agent: performance-profiler
+category: performance
+description: >-
+  Verifies a profiling run yields a report and flame graphs, and identifies concrete
+  hotspots with recommendations.
+template: templates/performance/performance-profiler.yaml
+
+scenarios:
+  - id: cpu-hotspots
+    description: Profile a slow endpoint and identify hotspots.
+    inputs:
+      task_description: Profile the application and find performance hotspots.
+      requirements: flame graph, hotspot ranking, recommendations
+    pass_threshold: 0.7
+    checks:
+      - id: report
+        type: file_exists
+        weight: 2
+        critical: true
+        path: performance-profile-report.md
+      - id: flame-graphs
+        type: file_glob
+        weight: 2
+        critical: true
+        description: Flame graph(s) produced.
+        pattern: "profiles/*.svg"
+        min_matches: 1
+      - id: hotspots-identified
+        type: file_contains
+        weight: 2
+        description: Report names specific hotspots.
+        path: performance-profile-report.md
+        pattern: "(?i)(hotspot|bottleneck|top|%|ms|self time)"
+      - id: recommendations
+        type: file_contains
+        weight: 2
+        description: Actionable optimization recommendations.
+        path: performance-profile-report.md
+        pattern: "(?i)(recommend|optimi|cache|index|reduce|async)"
+      - id: quality
+        type: llm_rubric
+        weight: 1
+        criteria: Are the identified hotspots the real cost centers, with correct, prioritized fixes?

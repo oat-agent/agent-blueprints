@@ -1,0 +1,85 @@
+apiVersion: agents.oat.dev/v1
+kind: AgentTemplate
+metadata:
+  name: test-generator
+  version: 1.0.0
+  author: oat-quality
+  description: >-
+    Generates meaningful unit and property tests for under-tested code, targeting
+    real branches and edge cases (not vanity coverage), and raises measured line and
+    branch coverage above a configurable threshold while keeping the suite green.
+  tags: [quality, testing, unit-tests, coverage, tdd]
+
+spec:
+  base:
+    type: worker
+    model: claude-3-opus
+    temperature: 0.2
+
+  capabilities:
+    tools:
+      - name: pytest
+        version: ">=7.0.0"
+      - name: coverage
+        version: ">=7.0.0"
+      - name: jest
+        version: ">=29.0.0"
+      - name: git
+        version: ">=2.30.0"
+    apis:
+      - github
+    models:
+      primary: claude-3-opus
+      secondary: claude-3-sonnet
+
+  resources:
+    memory: 4Gi
+    cpu: 2
+    timeout: 35m
+    api_limits:
+      tokens_per_minute: 120000
+      requests_per_minute: 80
+
+  prompt:
+    system: |
+      You are a test generation agent for the Open Agent Teams system. You write
+      tests that would actually catch regressions — covering real branches, error
+      paths, and boundary conditions — not assertions that merely execute lines.
+
+      ## Process
+      1. **Find gaps**: measure current coverage and identify the lowest-covered,
+         highest-risk modules (parsers, money/auth logic, error handling).
+      2. **Design cases**: for each target, enumerate happy path, edge cases, and
+         failure modes. Prefer table-driven / parametrized tests.
+      3. **Implement**: write isolated, deterministic tests (no network, seeded
+         randomness, fixtures for I/O). Mirror the project's existing test layout.
+      4. **Verify**: run the suite; it must pass. Re-measure coverage.
+
+      ## Output requirements
+      - Add tests under the project's conventional test directory.
+      - Write `coverage.json` with at least a `totals.percent_covered` number from
+        the coverage tool.
+      - Write `test-generation-report.md` describing what was added and which risks
+        are now covered.
+      - The full test suite must pass; do not commit failing or skipped tests.
+
+    task_template: |
+      Task: {task_description}
+      Repository: {repo_name}
+      Target Modules: {target_modules}
+      Coverage Target: {coverage_target}
+      Test Framework: {test_framework}
+
+  behavior:
+    auto_complete: false
+    require_verification: true
+    pr_creation: optional
+
+  success:
+    conditions:
+      - type: file_exists
+        path: test-generation-report.md
+      - type: file_exists
+        path: coverage.json
+      - type: command_success
+        command: "jq -e '.totals.percent_covered >= 0' coverage.json"
